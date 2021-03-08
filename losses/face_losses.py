@@ -1,4 +1,6 @@
 import tensorflow as tf
+import pandas as pd
+import numpy as np
 import math
 
 
@@ -119,3 +121,85 @@ def combine_loss_val(embedding, labels, w_init, out_num, margin_a, margin_m, mar
     predict_cls_s = tf.argmax(zy, 1)
     accuracy_s = tf.reduce_mean(tf.cast(tf.equal(tf.cast(predict_cls_s, tf.int64), tf.cast(labels, tf.int64)), 'float'))
     return zy, loss, accuracy, accuracy_s, predict_cls_s
+
+def _calculate_null_dist(s, n):
+    pass
+
+def _calculate_clustering_index(S):
+
+    #create pandas dataframe for grouping
+    colnames = ['id','demographic'] + ['V'+str(i) for i in range(S.shape[1]-2)]
+    df = pd.DataFrame(
+        data=S,
+        columns=colnames
+    )
+    df[colnames[2:]] = df[colnames[2:]].apply(pd.to_numeric, downcast='float')
+
+    #calculate variance across each feature
+    var = np.var(S.loc[:,3:], axis=1)
+
+    #calculate variance across groups
+    grouped_var = df[colnames[1:]].groupby(['race']).var()
+
+    '''
+    #pivot table so features are in a column
+  df.pivot <- df %>%
+    pivot_longer(cols=starts_with('V'), names_to = 'feature', values_to='value') %>%
+    separate(col = 'feature', into = c(NA, 'feature'), sep = "(?<=[A-Za-z])(?=[0-9])") %>%
+    mutate(feature = as.numeric(feature)) %>%
+    arrange(feature)
+  
+  #get overall variance
+  df.overall.var <- df.pivot %>%
+    group_by(feature) %>%
+    summarize(
+      var.overall = sum((value - mean(value))^2)/n(),
+      .groups='drop'
+    )
+  
+  #get within cluster variance
+  df.within.var <- df.pivot %>%
+    group_by(feature, dem) %>%
+    summarize(
+      n = n(),
+      var.within = sum((value - mean(value))^2)/n,
+      .groups='drop'
+    ) %>%
+    group_by(feature) %>%
+    summarize(
+      var.within.sum = sum(n*var.within)/sum(n),
+      .groups='drop'
+    )
+  
+  #calculate clustering index
+  df.index <- inner_join(df.within.var, df.overall.var, by = 'feature') %>%
+    summarize(
+      feat = feature, 
+      clustering.index = 1 - (var.within.sum / var.overall)
+    )
+  
+    '''
+    # calculate variance per component
+    # var = apply(pc[,3:ncol(pc)], 2, sd) ^ 2
+
+    # calculate net clustering
+    # (clustering$clustering.index % * % var) / sum(var)
+
+    pass
+
+def broad_homogeneity_loss(embedding, labels):
+
+    #normalize embeddings
+    embedding_norm = tf.norm(embedding, ord=2, axis=1, keep_dims=True)
+    embedding_norm = tf.reshape(embedding_norm, (-1,1))
+    embedding = tf.div(embedding, embedding_norm, name='norm_embedding')
+
+    #compute svd
+    s = tf.svd(embedding, compute_uv=False, name='svd_embedding')
+
+    #calculate clustering effects
+    S = tf.stack([labels, embedding])
+    clustering = _calculate_clustering_index(S.eval())
+
+    return clustering
+

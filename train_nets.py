@@ -63,6 +63,7 @@ if __name__ == '__main__':
     dataset = dataset.batch(args.batch_size)
     iterator = dataset.make_initializable_iterator()
     next_element = iterator.get_next()
+
     # 2.2 prepare validate datasets
     ver_list = []
     ver_name_list = []
@@ -71,20 +72,25 @@ if __name__ == '__main__':
         data_set = load_bin(db, args.image_size, args)
         ver_list.append(data_set)
         ver_name_list.append(db)
+
     # 3. define network, loss, optimize method, learning rate schedule, summary writer, saver
+
     # 3.1 inference phase
     w_init_method = tf.contrib.layers.xavier_initializer(uniform=False)
     net = get_resnet(images, args.net_depth, type='ir', w_init=w_init_method, trainable=True, keep_rate=dropout_rate)
+
     # 3.2 get arcface loss
     logit = arcface_loss(embedding=net.outputs, labels=labels, w_init=w_init_method, out_num=args.num_output)
     # test net  because of batch normal layer
     tl.layers.set_name_reuse(True)
     test_net = get_resnet(images, args.net_depth, type='ir', w_init=w_init_method, trainable=False, reuse=True, keep_rate=dropout_rate)
     embedding_tensor = test_net.outputs
+
     # 3.3 define the cross entropy
     inference_loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logit, labels=labels))
     # inference_loss_avg = tf.reduce_mean(inference_loss)
-    # 3.4 define weight deacy losses
+
+    # 3.4 define weight decay losses
     # for var in tf.trainable_variables():
     #     print(var.name)
     # print('##########'*30)
@@ -106,56 +112,72 @@ if __name__ == '__main__':
 
     # 3.5 total losses
     total_loss = inference_loss + wd_loss
+
     # 3.6 define the learning rate schedule
     p = int(512.0/args.batch_size)
     lr_steps = [p*val for val in args.lr_steps]
     print(lr_steps)
     lr = tf.train.piecewise_constant(global_step, boundaries=lr_steps, values=[0.001, 0.0005, 0.0003, 0.0001], name='lr_schedule')
+
     # 3.7 define the optimize method
     opt = tf.train.MomentumOptimizer(learning_rate=lr, momentum=args.momentum)
+
     # 3.8 get train op
     grads = opt.compute_gradients(total_loss)
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+
     with tf.control_dependencies(update_ops):
         train_op = opt.apply_gradients(grads, global_step=global_step)
     # train_op = opt.minimize(total_loss, global_step=global_step)
+
     # 3.9 define the inference accuracy used during validate or test
     pred = tf.nn.softmax(logit)
     acc = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(pred, axis=1), labels), dtype=tf.float32))
+
     # 3.10 define sess
     config = tf.ConfigProto(allow_soft_placement=True, log_device_placement=args.log_device_mapping)
     config.gpu_options.allow_growth = True
 
     sess = tf.Session(config=config)
+
     # 3.11 summary writer
     summary = tf.summary.FileWriter(args.summary_path, sess.graph)
     summaries = []
+
     # # 3.11.1 add grad histogram op
     for grad, var in grads:
         if grad is not None:
             summaries.append(tf.summary.histogram(var.op.name + '/gradients', grad))
+
     # 3.11.2 add trainabel variable gradients
     for var in tf.trainable_variables():
         summaries.append(tf.summary.histogram(var.op.name, var))
+
     # 3.11.3 add loss summary
     summaries.append(tf.summary.scalar('inference_loss', inference_loss))
     summaries.append(tf.summary.scalar('wd_loss', wd_loss))
     summaries.append(tf.summary.scalar('total_loss', total_loss))
+
     # 3.11.4 add learning rate
     summaries.append(tf.summary.scalar('leraning_rate', lr))
     summary_op = tf.summary.merge(summaries)
+
     # 3.12 saver
     saver = tf.train.Saver(max_to_keep=args.saver_maxkeep)
+
     # 3.13 init all variables
     sess.run(tf.global_variables_initializer())
 
     # restore_saver = tf.train.Saver()
     # restore_saver.restore(sess, '/home/aurora/workspaces2018/InsightFace_TF/output/ckpt/InsightFace_iter_1110000.ckpt')
+
     # 4 begin iteration
     if not os.path.exists(args.log_file_path):
         os.makedirs(args.log_file_path)
     log_file_path = args.log_file_path + '/train' + time.strftime('_%Y-%m-%d-%H-%M', time.localtime(time.time())) + '.log'
+
     log_file = open(log_file_path, 'w')
+
     # 4 begin iteration
     count = 0
     total_accuracy = {}
