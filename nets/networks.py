@@ -11,9 +11,9 @@ def get_model(inputs, sess, type, pretrained=True):
 
 
 if __name__ == '__main__':
-    tfconfig = tf.ConfigProto(allow_soft_placement=True)
-    x = tf.placeholder(dtype=tf.float32, shape=[None, 224, 224, 3], name='inpust')
-    with tf.Session(config=tfconfig) as sess:
+    tfconfig = tf.compat.v1.ConfigProto(allow_soft_placement=True)
+    x = tf.compat.v1.placeholder(dtype=tf.float32, shape=[None, 224, 224, 3], name='inpust')
+    with tf.compat.v1.Session(config=tfconfig) as sess:
         network = get_model(x, sess, type='vgg19', pretrained=True)
         network.print_params()
         network.print_layers()

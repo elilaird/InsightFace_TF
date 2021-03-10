@@ -20,9 +20,9 @@ def arcface_loss_val(embedding, labels, weights, out_num, s=64., m=0.5):
     threshold = math.cos(math.pi - m)
     with tf.variable_scope('arcface_loss'):
         # inputs and weights norm
-        embedding_norm = tf.norm(embedding, axis=1, keep_dims=True)
+        embedding_norm = tf.norm(tensor=embedding, axis=1, keepdims=True)
         embedding = tf.div(embedding, embedding_norm, name='norm_embedding')
-        weights_norm = tf.norm(weights, axis=0, keep_dims=True)
+        weights_norm = tf.norm(tensor=weights, axis=0, keepdims=True)
         weights = tf.div(weights, weights_norm, name='norm_weights')
         # cos(theta+m)
         cos_t = tf.matmul(embedding, weights, name='cos_t')
@@ -56,8 +56,8 @@ def test_arcface_losses(np_embedding, np_weights):
     tf_weights = tf.constant(np_weights, name='weights')
     output = arcface_loss_val(embedding=tf_embedding, labels=labels, out_num=10, weights=tf_weights)
     print(output)
-    sess = tf.Session()
-    sess.run(tf.global_variables_initializer())
+    sess = tf.compat.v1.Session()
+    sess.run(tf.compat.v1.global_variables_initializer())
     results1 = sess.run(output)
     print(results1)
     return results1
@@ -68,8 +68,8 @@ def test_cosineface_losses():
     tf_embedding = tf.constant(np_embedding, name='embedding', dtype=tf.float32)
     labels = tf.constant([1, 3, 2, 1, 1], name='input_labels', dtype=tf.int64)
     output = cosineface_losses(embedding=tf_embedding, labels=labels, out_num=10)
-    sess = tf.Session()
-    sess.run(tf.global_variables_initializer())
+    sess = tf.compat.v1.Session()
+    sess.run(tf.compat.v1.global_variables_initializer())
     print(sess.run(output))
 
 

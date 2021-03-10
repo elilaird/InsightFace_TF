@@ -78,7 +78,7 @@ def conv2d_same(inputs, num_outputs, kernel_size, strides, rate=1, w_init=None, 
             nets = tl.layers.Conv2d(inputs, n_filter=num_outputs, filter_size=(kernel_size, kernel_size), b_init=None,
                                    strides=(strides, strides), W_init=w_init, act=None, padding='SAME', name=scope,
                                     use_cudnn_on_gpu=True)
-            nets.outputs = tf.layers.batch_normalization(inputs=nets.outputs,
+            nets.outputs = tf.compat.v1.layers.batch_normalization(inputs=nets.outputs,
                                                          momentum=0.9,
                                                          training=trainable,
                                                          renorm=True,
@@ -89,7 +89,7 @@ def conv2d_same(inputs, num_outputs, kernel_size, strides, rate=1, w_init=None, 
         else:
             nets = tl.layers.AtrousConv2dLayer(inputs, n_filter=num_outputs, filter_size=(kernel_size, kernel_size),
                                                rate=rate, act=None, W_init=w_init, padding='SAME', name=scope)
-            nets.outputs = tf.layers.batch_normalization(inputs=nets.outputs,
+            nets.outputs = tf.compat.v1.layers.batch_normalization(inputs=nets.outputs,
                                                          momentum=0.9,
                                                          training=trainable,
                                                          renorm=True,
@@ -108,7 +108,7 @@ def conv2d_same(inputs, num_outputs, kernel_size, strides, rate=1, w_init=None, 
             nets = tl.layers.Conv2d(inputs, n_filter=num_outputs, filter_size=(kernel_size, kernel_size), b_init=None,
                                     strides=(strides, strides), W_init=w_init, act=None, padding='VALID', name=scope,
                                     use_cudnn_on_gpu=True)
-            nets.outputs = tf.layers.batch_normalization(inputs=nets.outputs,
+            nets.outputs = tf.compat.v1.layers.batch_normalization(inputs=nets.outputs,
                                                          momentum=0.9,
                                                          training=trainable,
                                                          renorm=True,
@@ -119,7 +119,7 @@ def conv2d_same(inputs, num_outputs, kernel_size, strides, rate=1, w_init=None, 
         else:
             nets = tl.layers.AtrousConv2dLayer(inputs, n_filter=num_outputs, filter_size=(kernel_size, kernel_size), b_init=None,
                                               rate=rate, act=None, W_init=w_init, padding='SAME', name=scope)
-            nets.outputs = tf.layers.batch_normalization(inputs=nets.outputs,
+            nets.outputs = tf.compat.v1.layers.batch_normalization(inputs=nets.outputs,
                                                          momentum=0.9,
                                                          training=trainable,
                                                          renorm=True,
@@ -131,14 +131,14 @@ def conv2d_same(inputs, num_outputs, kernel_size, strides, rate=1, w_init=None, 
 
 
 def bottleneck_IR(inputs, depth, depth_bottleneck, stride, rate=1, w_init=None, scope=None, trainable=None):
-    with tf.variable_scope(scope, 'bottleneck_v1') as sc:
+    with tf.compat.v1.variable_scope(scope, 'bottleneck_v1') as sc:
         depth_in = utils.last_dimension(inputs.outputs.get_shape(), min_rank=4)
         if depth == depth_in:
             shortcut = subsample(inputs, stride, 'shortcut')
         else:
             shortcut = tl.layers.Conv2d(inputs, depth, filter_size=(1, 1), strides=(stride, stride), act=None,
                                         W_init=w_init, b_init=None, name='shortcut_conv', use_cudnn_on_gpu=True)
-            shortcut.outputs = tf.layers.batch_normalization(inputs=shortcut.outputs,
+            shortcut.outputs = tf.compat.v1.layers.batch_normalization(inputs=shortcut.outputs,
                                                              momentum=0.9,
                                                              training=trainable,
                                                              renorm=True,
@@ -147,7 +147,7 @@ def bottleneck_IR(inputs, depth, depth_bottleneck, stride, rate=1, w_init=None, 
                                                              renorm_momentum=0.9,
                                                              name='shortcut_bn/BatchNorm')
         # bottleneck layer 1
-        inputs.outputs = tf.layers.batch_normalization(inputs=inputs.outputs,
+        inputs.outputs = tf.compat.v1.layers.batch_normalization(inputs=inputs.outputs,
                                                          momentum=0.9,
                                                          training=trainable,
                                                          renorm=True,
@@ -157,7 +157,7 @@ def bottleneck_IR(inputs, depth, depth_bottleneck, stride, rate=1, w_init=None, 
                                                          name='conv1_bn1')
         residual = tl.layers.Conv2d(inputs, depth_bottleneck, filter_size=(3, 3), strides=(1, 1), act=None, b_init=None,
                                     W_init=w_init, name='conv1', use_cudnn_on_gpu=True)
-        residual.outputs = tf.layers.batch_normalization(inputs=residual.outputs,
+        residual.outputs = tf.compat.v1.layers.batch_normalization(inputs=residual.outputs,
                                                          momentum=0.9,
                                                          training=trainable,
                                                          renorm=True,
@@ -177,14 +177,14 @@ def bottleneck_IR(inputs, depth, depth_bottleneck, stride, rate=1, w_init=None, 
 
 
 def resnet(inputs, bottle_neck, blocks, w_init=None, trainable=None, scope=None):
-    with tf.variable_scope(scope):
+    with tf.compat.v1.variable_scope(scope):
         # inputs = tf.subtract(inputs, 127.5)
         # inputs = tf.multiply(inputs, 0.0078125)
         net_inputs = tl.layers.InputLayer(inputs, name='input_layer')
         if bottle_neck:
             net = tl.layers.Conv2d(net_inputs, n_filter=64, filter_size=(3, 3), strides=(1, 1),
                                    act=None, W_init=w_init, b_init=None, name='conv1', use_cudnn_on_gpu=True)
-            net.outputs = tf.layers.batch_normalization(inputs=net.outputs,
+            net.outputs = tf.compat.v1.layers.batch_normalization(inputs=net.outputs,
                                                              momentum=0.9,
                                                              training=trainable,
                                                              renorm=True,
@@ -196,13 +196,13 @@ def resnet(inputs, bottle_neck, blocks, w_init=None, trainable=None, scope=None)
         else:
             raise ValueError('The standard resnet must support the bottleneck layer')
         for block in blocks:
-            with tf.variable_scope(block.scope):
+            with tf.compat.v1.variable_scope(block.scope):
                 for i, var in enumerate(block.args):
-                    with tf.variable_scope('unit_%d' % (i+1)):
+                    with tf.compat.v1.variable_scope('unit_%d' % (i+1)):
                         net = block.unit_fn(net, depth=var['depth'], depth_bottleneck=var['depth_bottleneck'],
                                             w_init=w_init, stride=var['stride'], rate=var['rate'], scope=None,
                                             trainable=trainable)
-        net.outputs = tf.layers.batch_normalization(inputs=net.outputs,
+        net.outputs = tf.compat.v1.layers.batch_normalization(inputs=net.outputs,
                                                     momentum=0.9,
                                                     training=trainable,
                                                     renorm=True,
@@ -214,7 +214,7 @@ def resnet(inputs, bottle_neck, blocks, w_init=None, trainable=None, scope=None)
         net_shape = net.outputs.get_shape()
         net = tl.layers.ReshapeLayer(net, shape=[-1, net_shape[1]*net_shape[2]*net_shape[3]], name='E_Reshapelayer')
         net = tl.layers.DenseLayer(net, n_units=512, W_init=w_init, name='E_DenseLayer')
-        net.outputs = tf.layers.batch_normalization(inputs=net.outputs,
+        net.outputs = tf.compat.v1.layers.batch_normalization(inputs=net.outputs,
                                                     momentum=0.9,
                                                     training=trainable,
                                                     renorm=True,
@@ -305,10 +305,10 @@ def get_resnet(inputs, num_layers, type=None, w_init=None, trainable=None, sess=
 
 
 if __name__ == '__main__':
-        x = tf.placeholder(dtype=tf.float32, shape=[None, 112, 112, 3], name='input_place')
-        sess = tf.Session()
+        x = tf.compat.v1.placeholder(dtype=tf.float32, shape=[None, 112, 112, 3], name='input_place')
+        sess = tf.compat.v1.Session()
         # w_init = tf.truncated_normal_initializer(mean=10, stddev=5e-2)
-        w_init = tf.contrib.layers.xavier_initializer(uniform=False)
+        w_init = tf.compat.v1.keras.initializers.VarianceScaling(scale=1.0, mode="fan_avg", distribution=("uniform" if False else "truncated_normal"))
         # test resnetse
         nets = get_resnet(x, 50, type='ir', w_init=w_init, sess=sess)
         tl.layers.initialize_global_variables(sess)

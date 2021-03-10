@@ -56,8 +56,8 @@ class DenseLayer(Layer):
             layer=None,
             n_units=100,
             act=tf.identity,
-            W_init=tf.truncated_normal_initializer(stddev=0.1),
-            b_init=tf.constant_initializer(value=0.0),
+            W_init=tf.compat.v1.truncated_normal_initializer(stddev=0.1),
+            b_init=tf.compat.v1.constant_initializer(value=0.0),
             W_init_args={},
             b_init_args={},
             name='dense_layer',
@@ -70,16 +70,16 @@ class DenseLayer(Layer):
         n_in = int(self.inputs.get_shape()[-1])
         self.n_units = n_units
         print("  [TL] DenseLayer  %s: %d %s" % (self.name, self.n_units, act.__name__))
-        with tf.variable_scope(name) as vs:
+        with tf.compat.v1.variable_scope(name) as vs:
             with tf.device('/cpu:0'):
-                W = tf.get_variable(name='W', shape=(n_in, n_units), initializer=W_init, dtype=D_TYPE, **W_init_args)
+                W = tf.compat.v1.get_variable(name='W', shape=(n_in, n_units), initializer=W_init, dtype=D_TYPE, **W_init_args)
             if b_init is not None:
                 try:
                     with tf.device('/cpu:0'):
-                        b = tf.get_variable(name='b', shape=(n_units), initializer=b_init, dtype=D_TYPE, **b_init_args)
+                        b = tf.compat.v1.get_variable(name='b', shape=(n_units), initializer=b_init, dtype=D_TYPE, **b_init_args)
                 except:  # If initializer is a constant, do not specify shape.
                     with tf.device('/cpu:0'):
-                        b = tf.get_variable(name='b', initializer=b_init, dtype=D_TYPE, **b_init_args)
+                        b = tf.compat.v1.get_variable(name='b', initializer=b_init, dtype=D_TYPE, **b_init_args)
                 self.outputs = act(tf.matmul(self.inputs, W) + b)
             else:
                 self.outputs = act(tf.matmul(self.inputs, W))
@@ -155,7 +155,7 @@ def average_gradients(tower_grads):
 
     # Average over the 'tower' dimension.
     grad = tf.concat(axis=0, values=grads)
-    grad = tf.reduce_mean(grad, 0)
+    grad = tf.reduce_mean(input_tensor=grad, axis=0)
 
     # Keep in mind that the Variables are redundant because they are shared
     # across towers. So .. we will just return the first tower's pointer to
@@ -168,33 +168,33 @@ def average_gradients(tower_grads):
 
 def train():
     with tf.Graph().as_default(), tf.device('/cpu:0'):
-        global_step = tf.get_variable(
+        global_step = tf.compat.v1.get_variable(
             'global_step', [],
-            initializer=tf.constant_initializer(0), trainable=False)
+            initializer=tf.compat.v1.constant_initializer(0), trainable=False)
         # Decay the learning rate exponentially based on the number of steps.
-        lr = tf.train.exponential_decay(0.01,
+        lr = tf.compat.v1.train.exponential_decay(0.01,
                                         global_step,
                                         10000,
                                         0.99,
                                         staircase=True)
         # Create an optimizer that performs gradient descent.
-        opt = tf.train.GradientDescentOptimizer(lr)
+        opt = tf.compat.v1.train.GradientDescentOptimizer(lr)
         tower_grads = []
-        x = tf.placeholder(tf.float32, shape=[None, 784], name='x')
-        y_ = tf.placeholder(tf.int64, shape=[None, ], name='y_')
-        with tf.variable_scope(tf.get_variable_scope()):
+        x = tf.compat.v1.placeholder(tf.float32, shape=[None, 784], name='x')
+        y_ = tf.compat.v1.placeholder(tf.int64, shape=[None, ], name='y_')
+        with tf.compat.v1.variable_scope(tf.compat.v1.get_variable_scope()):
             for i in range(1):
                 with tf.device('/gpu:%d' % i):
-                    with tf.name_scope('%s_%d' % ('tower', i)) as scope:
+                    with tf.compat.v1.name_scope('%s_%d' % ('tower', i)) as scope:
                         tl.layers.set_name_reuse(True)
                         # Dequeues one batch for the GPU
                         # Calculate the loss for one tower of the CIFAR model. This function
                         # constructs the entire CIFAR model but shares the variables across
                         # all towers.
-                        summaries = tf.get_collection(tf.GraphKeys.SUMMARIES, scope)
+                        summaries = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.SUMMARIES, scope)
                         loss = tower_losses(x, y_)
                         # Reuse variables for the next tower.
-                        tf.get_variable_scope().reuse_variables()
+                        tf.compat.v1.get_variable_scope().reuse_variables()
                         # Calculate the gradients for the batch of data on this CIFAR tower.
                         grads = opt.compute_gradients(loss)
                         # Keep track of the gradients across all towers.
@@ -206,12 +206,12 @@ def train():
 
         # Track the moving averages of all trainable variables.
         variable_averages = tf.train.ExponentialMovingAverage(0.9999, global_step)
-        variables_averages_op = variable_averages.apply(tf.trainable_variables())
+        variables_averages_op = variable_averages.apply(tf.compat.v1.trainable_variables())
 
         train_op = tf.group(apply_gradient_op, variables_averages_op)
         # Build an initialization operation to run below.
-        init = tf.global_variables_initializer()
-        sess = tf.Session(config=tf.ConfigProto(
+        init = tf.compat.v1.global_variables_initializer()
+        sess = tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(
             allow_soft_placement=True,
             log_device_placement=True))
         sess.run(init)

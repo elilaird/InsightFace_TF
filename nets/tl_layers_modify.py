@@ -4,7 +4,7 @@ from tensorlayer.layers import Layer, list_remove_repeat
 
 
 D_TYPE = tf.float32
-TF_GRAPHKEYS_VARIABLES = tf.GraphKeys.GLOBAL_VARIABLES
+TF_GRAPHKEYS_VARIABLES = tf.compat.v1.GraphKeys.GLOBAL_VARIABLES
 
 
 class ElementwiseLayer(Layer):
@@ -103,8 +103,8 @@ class BatchNormLayer(Layer):
             act=tf.identity,
             is_train=False,
             fix_gamma=True,
-            beta_init=tf.zeros_initializer,
-            gamma_init=tf.random_normal_initializer(mean=1.0, stddev=0.002),  # tf.ones_initializer,
+            beta_init=tf.compat.v1.zeros_initializer,
+            gamma_init=tf.compat.v1.random_normal_initializer(mean=1.0, stddev=0.002),  # tf.ones_initializer,
             # dtype = tf.float32,
             trainable=None,
             name='batchnorm_layer',
@@ -118,16 +118,16 @@ class BatchNormLayer(Layer):
         from tensorflow.python.training import moving_averages
         from tensorflow.python.ops import control_flow_ops
 
-        with tf.variable_scope(name) as vs:
+        with tf.compat.v1.variable_scope(name) as vs:
             axis = list(range(len(x_shape) - 1))
 
             ## 1. beta, gamma
-            if tf.__version__ > '0.12.1' and beta_init == tf.zeros_initializer:
+            if tf.__version__ > '0.12.1' and beta_init == tf.compat.v1.zeros_initializer:
                 beta_init = beta_init()
             with tf.device('/cpu:0'):
-                beta = tf.get_variable('beta', shape=params_shape, initializer=beta_init, dtype=tf.float32, trainable=is_train)  #, restore=restore)
+                beta = tf.compat.v1.get_variable('beta', shape=params_shape, initializer=beta_init, dtype=tf.float32, trainable=is_train)  #, restore=restore)
 
-                gamma = tf.get_variable(
+                gamma = tf.compat.v1.get_variable(
                     'gamma',
                     shape=params_shape,
                     initializer=gamma_init,
@@ -137,22 +137,22 @@ class BatchNormLayer(Layer):
 
             ## 2.
             if tf.__version__ > '0.12.1':
-                moving_mean_init = tf.zeros_initializer()
+                moving_mean_init = tf.compat.v1.zeros_initializer()
             else:
-                moving_mean_init = tf.zeros_initializer
+                moving_mean_init = tf.compat.v1.zeros_initializer
             with tf.device('/cpu:0'):
-                moving_mean = tf.get_variable('moving_mean', params_shape, initializer=moving_mean_init, dtype=tf.float32, trainable=False)  #   restore=restore)
-                moving_variance = tf.get_variable(
+                moving_mean = tf.compat.v1.get_variable('moving_mean', params_shape, initializer=moving_mean_init, dtype=tf.float32, trainable=False)  #   restore=restore)
+                moving_variance = tf.compat.v1.get_variable(
                     'moving_variance',
                     params_shape,
-                    initializer=tf.constant_initializer(1.),
+                    initializer=tf.compat.v1.constant_initializer(1.),
                     dtype=tf.float32,
                     trainable=False,
                 )  #   restore=restore)
 
             ## 3.
             # These ops will only be preformed when training.
-            mean, variance = tf.nn.moments(self.inputs, axis)
+            mean, variance = tf.nn.moments(x=self.inputs, axes=axis)
             try:  # TF12
                 update_moving_mean = moving_averages.assign_moving_average(moving_mean, mean, decay, zero_debias=False)  # if zero_debias=True, has bias
                 update_moving_variance = moving_averages.assign_moving_average(
@@ -188,8 +188,8 @@ def Conv2d(
         strides=(1, 1),
         act=None,
         padding='SAME',
-        W_init=tf.truncated_normal_initializer(stddev=0.02),
-        b_init=tf.constant_initializer(value=0.0),
+        W_init=tf.compat.v1.truncated_normal_initializer(stddev=0.02),
+        b_init=tf.compat.v1.constant_initializer(value=0.0),
         W_init_args={},
         b_init_args={},
         use_cudnn_on_gpu=None,
@@ -315,8 +315,8 @@ class Conv2dLayer(Layer):
             shape=[5, 5, 1, 100],
             strides=[1, 1, 1, 1],
             padding='SAME',
-            W_init=tf.truncated_normal_initializer(stddev=0.02),
-            b_init=tf.constant_initializer(value=0.0),
+            W_init=tf.compat.v1.truncated_normal_initializer(stddev=0.02),
+            b_init=tf.compat.v1.constant_initializer(value=0.0),
             W_init_args={},
             b_init_args={},
             use_cudnn_on_gpu=None,
@@ -327,16 +327,16 @@ class Conv2dLayer(Layer):
         self.inputs = layer.outputs
         print("  [TL] Conv2dLayer %s: shape:%s strides:%s pad:%s act:%s" % (self.name, str(shape), str(strides), padding, act.__name__))
 
-        with tf.variable_scope(name) as vs:
+        with tf.compat.v1.variable_scope(name) as vs:
             with tf.device('/cpu:0'):
-                W = tf.get_variable(name='W_conv2d', shape=shape, initializer=W_init, dtype=D_TYPE, **W_init_args)
+                W = tf.compat.v1.get_variable(name='W_conv2d', shape=shape, initializer=W_init, dtype=D_TYPE, **W_init_args)
             if b_init:
                 with tf.device('/cpu:0'):
-                    b = tf.get_variable(name='b_conv2d', shape=(shape[-1]), initializer=b_init, dtype=D_TYPE, **b_init_args)
+                    b = tf.compat.v1.get_variable(name='b_conv2d', shape=(shape[-1]), initializer=b_init, dtype=D_TYPE, **b_init_args)
                 self.outputs = act(
-                    tf.nn.conv2d(self.inputs, W, strides=strides, padding=padding, use_cudnn_on_gpu=use_cudnn_on_gpu, data_format=data_format) + b)
+                    tf.nn.conv2d(input=self.inputs, filters=W, strides=strides, padding=padding, data_format=data_format) + b)
             else:
-                self.outputs = act(tf.nn.conv2d(self.inputs, W, strides=strides, padding=padding, use_cudnn_on_gpu=use_cudnn_on_gpu, data_format=data_format))
+                self.outputs = act(tf.nn.conv2d(input=self.inputs, filters=W, strides=strides, padding=padding, data_format=data_format))
 
         self.all_layers = list(layer.all_layers)
         self.all_params = list(layer.all_params)
@@ -373,7 +373,7 @@ class PReluLayer(Layer):
             self,
             layer=None,
             channel_shared=False,
-            a_init=tf.constant_initializer(value=0.0),
+            a_init=tf.compat.v1.constant_initializer(value=0.0),
             a_init_args={},
             # restore = True,
             name="prelu_layer"):
@@ -386,9 +386,9 @@ class PReluLayer(Layer):
             w_shape = int(self.inputs.get_shape()[-1])
 
         # with tf.name_scope(name) as scope:
-        with tf.variable_scope(name) as vs:
+        with tf.compat.v1.variable_scope(name) as vs:
             with tf.device('/cpu:0'):
-                alphas = tf.get_variable(name='alphas', shape=w_shape, initializer=a_init, dtype=D_TYPE, **a_init_args)
+                alphas = tf.compat.v1.get_variable(name='alphas', shape=w_shape, initializer=a_init, dtype=D_TYPE, **a_init_args)
             try:  ## TF 1.0
                 self.outputs = tf.nn.relu(self.inputs) + tf.multiply(alphas, (self.inputs - tf.abs(self.inputs))) * 0.5
             except:  ## TF 0.12
@@ -454,8 +454,8 @@ class DenseLayer(Layer):
             layer=None,
             n_units=100,
             act=tf.identity,
-            W_init=tf.truncated_normal_initializer(stddev=0.1),
-            b_init=tf.constant_initializer(value=0.0),
+            W_init=tf.compat.v1.truncated_normal_initializer(stddev=0.1),
+            b_init=tf.compat.v1.constant_initializer(value=0.0),
             W_init_args={},
             b_init_args={},
             name='dense_layer',
@@ -468,16 +468,16 @@ class DenseLayer(Layer):
         n_in = int(self.inputs.get_shape()[-1])
         self.n_units = n_units
         print("  [TL] DenseLayer  %s: %d %s" % (self.name, self.n_units, act.__name__))
-        with tf.variable_scope(name) as vs:
+        with tf.compat.v1.variable_scope(name) as vs:
             with tf.device('/cpu:0'):
-                W = tf.get_variable(name='W', shape=(n_in, n_units), initializer=W_init, dtype=D_TYPE, **W_init_args)
+                W = tf.compat.v1.get_variable(name='W', shape=(n_in, n_units), initializer=W_init, dtype=D_TYPE, **W_init_args)
             if b_init is not None:
                 try:
                     with tf.device('/cpu:0'):
-                        b = tf.get_variable(name='b', shape=(n_units), initializer=b_init, dtype=D_TYPE, **b_init_args)
+                        b = tf.compat.v1.get_variable(name='b', shape=(n_units), initializer=b_init, dtype=D_TYPE, **b_init_args)
                 except:  # If initializer is a constant, do not specify shape.
                     with tf.device('/cpu:0'):
-                        b = tf.get_variable(name='b', initializer=b_init, dtype=D_TYPE, **b_init_args)
+                        b = tf.compat.v1.get_variable(name='b', initializer=b_init, dtype=D_TYPE, **b_init_args)
                 self.outputs = act(tf.matmul(self.inputs, W) + b)
             else:
                 self.outputs = act(tf.matmul(self.inputs, W))
@@ -496,7 +496,7 @@ class DenseLayer(Layer):
 
 def get_shape(input_tensor):
     static_shape = input_tensor.get_shape().as_list()
-    dynamic_shape = tf.unstack(tf.shape(input_tensor))
+    dynamic_shape = tf.unstack(tf.shape(input=input_tensor))
     final_shapes = [shapes[1] if shapes[0] is None else shapes[0] for shapes in zip(static_shape, dynamic_shape)]
     return final_shapes
 
@@ -525,8 +525,8 @@ class GroupNormLayer(Layer):
             layer=None,
             act=tf.identity,
             epsilon=1e-5,
-            scale_init=tf.constant_initializer(1.0),
-            offset_init=tf.constant_initializer(0.0),
+            scale_init=tf.compat.v1.constant_initializer(1.0),
+            offset_init=tf.compat.v1.constant_initializer(0.0),
             G=32,
             name='group_norm',
     ):
@@ -536,20 +536,20 @@ class GroupNormLayer(Layer):
         inputs_shape = get_shape(layer.outputs)
         G = tf.minimum(G, inputs_shape[-1])
         # [N, H, W, C] to [N, C, H, W]
-        temp_input = tf.transpose(self.inputs, [0, 3, 1, 2])
+        temp_input = tf.transpose(a=self.inputs, perm=[0, 3, 1, 2])
         temp_input = tf.reshape(temp_input, [inputs_shape[0], G, inputs_shape[-1]//G, inputs_shape[1], inputs_shape[2]],
                                 name='group_reshape1')
-        with tf.variable_scope(name) as vs:
-            mean, var = tf.nn.moments(temp_input, [2, 3, 4], keep_dims=True)
-            scale = tf.get_variable('scale', shape=[1, inputs_shape[-1], 1, 1], initializer=scale_init, dtype=D_TYPE)
-            offset = tf.get_variable('offset', shape=[1, inputs_shape[-1], 1, 1], initializer=offset_init, dtype=D_TYPE)
+        with tf.compat.v1.variable_scope(name) as vs:
+            mean, var = tf.nn.moments(x=temp_input, axes=[2, 3, 4], keepdims=True)
+            scale = tf.compat.v1.get_variable('scale', shape=[1, inputs_shape[-1], 1, 1], initializer=scale_init, dtype=D_TYPE)
+            offset = tf.compat.v1.get_variable('offset', shape=[1, inputs_shape[-1], 1, 1], initializer=offset_init, dtype=D_TYPE)
             temp_input = (temp_input - mean) / tf.sqrt(var + epsilon)
             temp_input = tf.reshape(temp_input, shape=[inputs_shape[0], inputs_shape[-1], inputs_shape[1], inputs_shape[2]],
                                     name='group_reshape2')
             self.outputs = scale * temp_input + offset
-            self.outputs = tf.transpose(self.outputs, [0, 2, 3, 1])
+            self.outputs = tf.transpose(a=self.outputs, perm=[0, 2, 3, 1])
             self.outputs = act(self.outputs)
-            variables = tf.get_collection(TF_GRAPHKEYS_VARIABLES, scope=vs.name)
+            variables = tf.compat.v1.get_collection(TF_GRAPHKEYS_VARIABLES, scope=vs.name)
         self.all_layers = list(layer.all_layers)
         self.all_params = list(layer.all_params)
         self.all_drop = dict(layer.all_drop)
@@ -560,6 +560,6 @@ class GroupNormLayer(Layer):
 if __name__ == '__main__':
     import numpy as np
     a = np.random.randn(5, 32, 32, 64)
-    b = tf.placeholder(dtype=tf.float32, name='placeholder_b', shape=(None, 32, 32, 64))
+    b = tf.compat.v1.placeholder(dtype=tf.float32, name='placeholder_b', shape=(None, 32, 32, 64))
     inputs_tl = tl.layers.InputLayer(b, name='inputs_layer')
     gp = GroupNormLayer(layer=inputs_tl)

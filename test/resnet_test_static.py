@@ -6,14 +6,14 @@ import numpy as np
 
 def resnet_diff_test(layers_num):
     ckpt_file_path = '../model_weights/resnet_v1_'+str(layers_num)+'.ckpt'
-    x = tf.placeholder(dtype=tf.float32, shape=[1, 224, 224, 3], name='input_place')
-    tfconfig = tf.ConfigProto(allow_soft_placement=True)
-    sess = tf.Session(config=tfconfig)
+    x = tf.compat.v1.placeholder(dtype=tf.float32, shape=[1, 224, 224, 3], name='input_place')
+    tfconfig = tf.compat.v1.ConfigProto(allow_soft_placement=True)
+    sess = tf.compat.v1.Session(config=tfconfig)
     nets = get_resnet(x, 1000, layers_num, sess)
     ckpt_static = get_tensor_static_val(ckpt_file_path, all_tensors=True, all_tensor_names=True)
 
     print('###########'*30)
-    vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)
+    vars = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.GLOBAL_VARIABLES)
 
     total_count = 0
     mean_avg = 0.0

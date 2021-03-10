@@ -56,8 +56,8 @@ class DenseLayer(Layer):
             layer=None,
             n_units=100,
             act=tf.identity,
-            W_init=tf.truncated_normal_initializer(stddev=0.1),
-            b_init=tf.constant_initializer(value=0.0),
+            W_init=tf.compat.v1.truncated_normal_initializer(stddev=0.1),
+            b_init=tf.compat.v1.constant_initializer(value=0.0),
             W_init_args={},
             b_init_args={},
             name='dense_layer',
@@ -70,16 +70,16 @@ class DenseLayer(Layer):
         n_in = int(self.inputs.get_shape()[-1])
         self.n_units = n_units
         print("  [TL] DenseLayer  %s: %d %s" % (self.name, self.n_units, act.__name__))
-        with tf.variable_scope(name) as vs:
+        with tf.compat.v1.variable_scope(name) as vs:
             with tf.device('/cpu:0'):
-                W = tf.get_variable(name='W', shape=(n_in, n_units), initializer=W_init, dtype=D_TYPE, **W_init_args)
+                W = tf.compat.v1.get_variable(name='W', shape=(n_in, n_units), initializer=W_init, dtype=D_TYPE, **W_init_args)
             if b_init is not None:
                 try:
                     with tf.device('/cpu:0'):
-                        b = tf.get_variable(name='b', shape=(n_units), initializer=b_init, dtype=D_TYPE, **b_init_args)
+                        b = tf.compat.v1.get_variable(name='b', shape=(n_units), initializer=b_init, dtype=D_TYPE, **b_init_args)
                 except:  # If initializer is a constant, do not specify shape.
                     with tf.device('/cpu:0'):
-                        b = tf.get_variable(name='b', initializer=b_init, dtype=D_TYPE, **b_init_args)
+                        b = tf.compat.v1.get_variable(name='b', initializer=b_init, dtype=D_TYPE, **b_init_args)
                 self.outputs = act(tf.matmul(self.inputs, W) + b)
             else:
                 self.outputs = act(tf.matmul(self.inputs, W))
@@ -97,7 +97,7 @@ class DenseLayer(Layer):
 
 
 def inference():
-        x = tf.placeholder(tf.float32, shape=[None, 784], name='x')
+        x = tf.compat.v1.placeholder(tf.float32, shape=[None, 784], name='x')
         network = tl.layers.InputLayer(x, name='input')
         network = tl.layers.DropoutLayer(network, keep=0.8, name='drop1')
         network = DenseLayer(network, n_units=800, act=tf.nn.relu, name='relu1')
@@ -112,7 +112,7 @@ if __name__ == '__main__':
     with tf.device('/gpu:0'):
         network = inference()
         network.print_layers()
-        sess = tf.Session(config=tf.ConfigProto(
+        sess = tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(
                 allow_soft_placement=True,
                 log_device_placement=True))
         tl.layers.initialize_global_variables(sess)

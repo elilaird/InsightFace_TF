@@ -4,7 +4,7 @@ import os
 
 
 def inference(x):
-    w_init_method = tf.contrib.layers.xavier_initializer(uniform=True)
+    w_init_method = tf.compat.v1.keras.initializers.VarianceScaling(scale=1.0, mode="fan_avg", distribution=("uniform" if True else "truncated_normal"))
     # define the network
     network = tl.layers.InputLayer(x, name='input')
     network = tl.layers.Conv2d(network, n_filter=64, filter_size=(3, 3), strides=(1, 1), padding='SAME', act=None,
@@ -64,18 +64,18 @@ if __name__ == '__main__':
     # prepare data
     X_train, y_train, X_val, y_val, X_test, y_test = tl.files.load_mnist_dataset(shape=(-1, 28, 28, 1))
     # define placeholder
-    x = tf.placeholder(tf.float32, shape=[None, 28, 28, 1], name='x')
-    y_ = tf.placeholder(tf.int64, shape=[None], name='y_')
+    x = tf.compat.v1.placeholder(tf.float32, shape=[None, 28, 28, 1], name='x')
+    y_ = tf.compat.v1.placeholder(tf.int64, shape=[None], name='y_')
 
     output = inference(x)
     cost = tl.cost.cross_entropy(output, y_, 'cost')
-    train_op = tf.train.GradientDescentOptimizer(learning_rate=0.1).minimize(cost)
+    train_op = tf.compat.v1.train.GradientDescentOptimizer(learning_rate=0.1).minimize(cost)
 
-    sess = tf.Session()
+    sess = tf.compat.v1.Session()
     tl.layers.initialize_global_variables(sess)
 
-    correct_prediction = tf.equal(tf.argmax(output, 1), y_)
-    acc = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+    correct_prediction = tf.equal(tf.argmax(input=output, axis=1), y_)
+    acc = tf.reduce_mean(input_tensor=tf.cast(correct_prediction, tf.float32))
 
     for epoch in range(n_epoch):
         train_loss, train_acc, n_batch = 0, 0, 0

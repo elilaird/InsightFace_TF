@@ -67,7 +67,7 @@ def average_gradients(tower_grads):
 
     # Average over the 'tower' dimension.
     grad = tf.concat(axis=0, values=grads)
-    grad = tf.reduce_mean(grad, 0)
+    grad = tf.reduce_mean(input_tensor=grad, axis=0)
 
     # Keep in mind that the Variables are redundant because they are shared
     # across towers. So .. we will just return the first tower's pointer to
@@ -83,11 +83,11 @@ if __name__ == '__main__':
     # 1. define global parameters
     args = get_parser()
     global_step = tf.Variable(name='global_step', initial_value=0, trainable=False)
-    inc_op = tf.assign_add(global_step, 1, name='increment_global_step')
-    images = tf.placeholder(name='img_inputs', shape=[None, *args.image_size, 3], dtype=tf.float32)
-    images_test = tf.placeholder(name='img_inputs', shape=[None, *args.image_size, 3], dtype=tf.float32)
-    labels = tf.placeholder(name='img_labels', shape=[None, ], dtype=tf.int64)
-    dropout_rate = tf.placeholder(name='dropout_rate', dtype=tf.float32)
+    inc_op = tf.compat.v1.assign_add(global_step, 1, name='increment_global_step')
+    images = tf.compat.v1.placeholder(name='img_inputs', shape=[None, *args.image_size, 3], dtype=tf.float32)
+    images_test = tf.compat.v1.placeholder(name='img_inputs', shape=[None, *args.image_size, 3], dtype=tf.float32)
+    labels = tf.compat.v1.placeholder(name='img_labels', shape=[None, ], dtype=tf.int64)
+    dropout_rate = tf.compat.v1.placeholder(name='dropout_rate', dtype=tf.float32)
     # splits input to different gpu
     images_s = tf.split(images, num_or_size_splits=args.num_gpus, axis=0)
     labels_s = tf.split(labels, num_or_size_splits=args.num_gpus, axis=0)
@@ -100,7 +100,7 @@ if __name__ == '__main__':
     dataset = dataset.map(parse_function)
     dataset = dataset.shuffle(buffer_size=args.buffer_size)
     dataset = dataset.batch(args.batch_size)
-    iterator = dataset.make_initializable_iterator()
+    iterator = tf.compat.v1.data.make_initializable_iterator(dataset)
     next_element = iterator.get_next()
     # 2.2 prepare validate datasets
     ver_list = []
@@ -112,15 +112,15 @@ if __name__ == '__main__':
         ver_name_list.append(db)
     # 3. define network, loss, optimize method, learning rate schedule, summary writer, saver
     # 3.1 inference phase
-    w_init_method = tf.contrib.layers.xavier_initializer(uniform=False)
+    w_init_method = tf.compat.v1.keras.initializers.VarianceScaling(scale=1.0, mode="fan_avg", distribution=("uniform" if False else "truncated_normal"))
     # 3.2 define the learning rate schedule
     p = int(512.0/args.batch_size)
     lr_steps = [p*val for val in args.lr_steps]
     print('learning rate steps: ', lr_steps)
-    lr = tf.train.piecewise_constant(global_step, boundaries=lr_steps, values=[0.001, 0.0005, 0.0003, 0.0001],
+    lr = tf.compat.v1.train.piecewise_constant(global_step, boundaries=lr_steps, values=[0.001, 0.0005, 0.0003, 0.0001],
                                      name='lr_schedule')
     # 3.3 define the optimize method
-    opt = tf.train.MomentumOptimizer(learning_rate=lr, momentum=args.momentum)
+    opt = tf.compat.v1.train.MomentumOptimizer(learning_rate=lr, momentum=args.momentum)
 
     # Calculate the gradients for each model tower.
     tower_grads = []
@@ -128,28 +128,28 @@ if __name__ == '__main__':
     loss_dict = {}
     drop_dict = {}
     loss_keys = []
-    with tf.variable_scope(tf.get_variable_scope()):
+    with tf.compat.v1.variable_scope(tf.compat.v1.get_variable_scope()):
       for i in range(args.num_gpus):
         with tf.device('/gpu:%d' % i):
-          with tf.name_scope('%s_%d' % (args.tower_name, i)) as scope:
+          with tf.compat.v1.name_scope('%s_%d' % (args.tower_name, i)) as scope:
             net = get_resnet(images_s[i], args.net_depth, type='ir', w_init=w_init_method, trainable=True, keep_rate=dropout_rate)
             logit = arcface_loss(embedding=net.outputs, labels=labels_s[i], w_init=w_init_method, out_num=args.num_output)
             # Reuse variables for the next tower.
-            tf.get_variable_scope().reuse_variables()
+            tf.compat.v1.get_variable_scope().reuse_variables()
             # define the cross entropy
-            inference_loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logit, labels=labels_s[i]))
+            inference_loss = tf.reduce_mean(input_tensor=tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logit, labels=labels_s[i]))
             # define weight deacy losses
             wd_loss = 0
             for weights in tl.layers.get_variables_with_name('W_conv2d', True, True):
-                wd_loss += tf.contrib.layers.l2_regularizer(args.weight_deacy)(weights)
+                wd_loss += tf.keras.regularizers.l2(0.5 * (args.weight_deacy))(weights)
             for W in tl.layers.get_variables_with_name('resnet_v1_50/E_DenseLayer/W', True, True):
-                wd_loss += tf.contrib.layers.l2_regularizer(args.weight_deacy)(W)
+                wd_loss += tf.keras.regularizers.l2(0.5 * (args.weight_deacy))(W)
             for weights in tl.layers.get_variables_with_name('embedding_weights', True, True):
-                wd_loss += tf.contrib.layers.l2_regularizer(args.weight_deacy)(weights)
+                wd_loss += tf.keras.regularizers.l2(0.5 * (args.weight_deacy))(weights)
             for gamma in tl.layers.get_variables_with_name('gamma', True, True):
-                wd_loss += tf.contrib.layers.l2_regularizer(args.weight_deacy)(gamma)
+                wd_loss += tf.keras.regularizers.l2(0.5 * (args.weight_deacy))(gamma)
             for alphas in tl.layers.get_variables_with_name('alphas', True, True):
-                wd_loss += tf.contrib.layers.l2_regularizer(args.weight_deacy)(alphas)
+                wd_loss += tf.keras.regularizers.l2(0.5 * (args.weight_deacy))(alphas)
             total_loss = inference_loss + wd_loss
 
             loss_dict[('inference_loss_%s_%d' % ('gpu', i))] = inference_loss
@@ -163,39 +163,39 @@ if __name__ == '__main__':
             if i == 0:
                 test_net = get_resnet(images_test, args.net_depth, type='ir', w_init=w_init_method, trainable=False, keep_rate=dropout_rate)
                 embedding_tensor = test_net.outputs
-                update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+                update_ops = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.UPDATE_OPS)
                 pred = tf.nn.softmax(logit)
-                acc = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(pred, axis=1), labels_s[i]), dtype=tf.float32))
+                acc = tf.reduce_mean(input_tensor=tf.cast(tf.equal(tf.argmax(input=pred, axis=1), labels_s[i]), dtype=tf.float32))
 
     grads = average_gradients(tower_grads)
     with tf.control_dependencies(update_ops):
         # Apply the gradients to adjust the shared variables.
         train_op = opt.apply_gradients(grads, global_step=global_step)
 
-    config = tf.ConfigProto(allow_soft_placement=True, log_device_placement=args.log_device_mapping)
+    config = tf.compat.v1.ConfigProto(allow_soft_placement=True, log_device_placement=args.log_device_mapping)
     config.gpu_options.allow_growth = True
-    sess = tf.Session(config=config)
+    sess = tf.compat.v1.Session(config=config)
     # summary writer
-    summary = tf.summary.FileWriter(args.summary_path, sess.graph)
+    summary = tf.compat.v1.summary.FileWriter(args.summary_path, sess.graph)
     summaries = []
     # add grad histogram op
     for grad, var in grads:
         if grad is not None:
-            summaries.append(tf.summary.histogram(var.op.name + '/gradients', grad))
+            summaries.append(tf.compat.v1.summary.histogram(var.op.name + '/gradients', grad))
     # add trainabel variable gradients
-    for var in tf.trainable_variables():
-        summaries.append(tf.summary.histogram(var.op.name, var))
+    for var in tf.compat.v1.trainable_variables():
+        summaries.append(tf.compat.v1.summary.histogram(var.op.name, var))
     # add loss summary
     for keys, val in loss_dict.items():
-        summaries.append(tf.summary.scalar(keys, val))
+        summaries.append(tf.compat.v1.summary.scalar(keys, val))
     # add learning rate
-    summaries.append(tf.summary.scalar('leraning_rate', lr))
-    summary_op = tf.summary.merge(summaries)
+    summaries.append(tf.compat.v1.summary.scalar('leraning_rate', lr))
+    summary_op = tf.compat.v1.summary.merge(summaries)
 
     # Create a saver.
-    saver = tf.train.Saver(tf.global_variables())
+    saver = tf.compat.v1.train.Saver(tf.compat.v1.global_variables())
     # init all variables
-    sess.run(tf.global_variables_initializer())
+    sess.run(tf.compat.v1.global_variables_initializer())
     # begin iteration
     count = 0
     for i in range(args.epoch):

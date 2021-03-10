@@ -17,14 +17,14 @@ def arcface_loss(embedding, labels, out_num, w_init=None, s=64., m=0.5):
     sin_m = math.sin(m)
     mm = sin_m * m  # issue 1
     threshold = math.cos(math.pi - m)
-    with tf.variable_scope('arcface_loss'):
+    with tf.compat.v1.variable_scope('arcface_loss'):
         # inputs and weights norm
-        embedding_norm = tf.norm(embedding, axis=1, keep_dims=True)
-        embedding = tf.div(embedding, embedding_norm, name='norm_embedding')
-        weights = tf.get_variable(name='embedding_weights', shape=(embedding.get_shape().as_list()[-1], out_num),
+        embedding_norm = tf.norm(tensor=embedding, axis=1, keepdims=True)
+        embedding = tf.compat.v1.div(embedding, embedding_norm, name='norm_embedding')
+        weights = tf.compat.v1.get_variable(name='embedding_weights', shape=(embedding.get_shape().as_list()[-1], out_num),
                                   initializer=w_init, dtype=tf.float32)
-        weights_norm = tf.norm(weights, axis=0, keep_dims=True)
-        weights = tf.div(weights, weights_norm, name='norm_weights')
+        weights_norm = tf.norm(tensor=weights, axis=0, keepdims=True)
+        weights = tf.compat.v1.div(weights, weights_norm, name='norm_weights')
         # cos(theta+m)
         cos_t = tf.matmul(embedding, weights, name='cos_t')
         cos_t2 = tf.square(cos_t, name='cos_2')
@@ -39,7 +39,7 @@ def arcface_loss(embedding, labels, out_num, w_init=None, s=64., m=0.5):
         cond = tf.cast(tf.nn.relu(cond_v, name='if_else'), dtype=tf.bool)
 
         keep_val = s*(cos_t - mm)
-        cos_mt_temp = tf.where(cond, cos_mt, keep_val)
+        cos_mt_temp = tf.compat.v1.where(cond, cos_mt, keep_val)
 
         mask = tf.one_hot(labels, depth=out_num, name='one_hot_mask')
         # mask = tf.squeeze(mask, 1)
@@ -60,14 +60,14 @@ def cosineface_losses(embedding, labels, out_num, w_init=None, s=30., m=0.4):
     :param m: the margin value, default is 0.4
     :return: the final cacualted output, this output is send into the tf.nn.softmax directly
     '''
-    with tf.variable_scope('cosineface_loss'):
+    with tf.compat.v1.variable_scope('cosineface_loss'):
         # inputs and weights norm
-        embedding_norm = tf.norm(embedding, axis=1, keep_dims=True)
-        embedding = tf.div(embedding, embedding_norm, name='norm_embedding')
-        weights = tf.get_variable(name='embedding_weights', shape=(embedding.get_shape().as_list()[-1], out_num),
+        embedding_norm = tf.norm(tensor=embedding, axis=1, keepdims=True)
+        embedding = tf.compat.v1.div(embedding, embedding_norm, name='norm_embedding')
+        weights = tf.compat.v1.get_variable(name='embedding_weights', shape=(embedding.get_shape().as_list()[-1], out_num),
                                   initializer=w_init, dtype=tf.float32)
-        weights_norm = tf.norm(weights, axis=0, keep_dims=True)
-        weights = tf.div(weights, weights_norm, name='norm_weights')
+        weights_norm = tf.norm(tensor=weights, axis=0, keepdims=True)
+        weights = tf.compat.v1.div(weights, weights_norm, name='norm_weights')
         # cos_theta - m
         cos_t = tf.matmul(embedding, weights, name='cos_t')
         cos_t_m = tf.subtract(cos_t, m, name='cos_t_m')
@@ -90,7 +90,7 @@ def combine_loss_val(embedding, labels, w_init, out_num, margin_a, margin_m, mar
     :param m: the margin value, default is 0.5
     :return: the final cacualted output, this output is send into the tf.nn.softmax directly
     '''
-    weights = tf.get_variable(name='embedding_weights', shape=(embedding.get_shape().as_list()[-1], out_num),
+    weights = tf.compat.v1.get_variable(name='embedding_weights', shape=(embedding.get_shape().as_list()[-1], out_num),
                               initializer=w_init, dtype=tf.float32)
     weights_unit = tf.nn.l2_normalize(weights, axis=0)
     embedding_unit = tf.nn.l2_normalize(embedding, axis=1)
@@ -115,11 +115,11 @@ def combine_loss_val(embedding, labels, w_init, out_num, margin_a, margin_m, mar
                 body = body - margin_b
             new_zy = body * s
     updated_logits = tf.add(zy, tf.scatter_nd(ordinal_y, tf.subtract(new_zy, sel_cos_t), zy.get_shape()))
-    loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=labels, logits=updated_logits))
-    predict_cls = tf.argmax(updated_logits, 1)
-    accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.cast(predict_cls, tf.int64), tf.cast(labels, tf.int64)), 'float'))
-    predict_cls_s = tf.argmax(zy, 1)
-    accuracy_s = tf.reduce_mean(tf.cast(tf.equal(tf.cast(predict_cls_s, tf.int64), tf.cast(labels, tf.int64)), 'float'))
+    loss = tf.reduce_mean(input_tensor=tf.nn.sparse_softmax_cross_entropy_with_logits(labels=labels, logits=updated_logits))
+    predict_cls = tf.argmax(input=updated_logits, axis=1)
+    accuracy = tf.reduce_mean(input_tensor=tf.cast(tf.equal(tf.cast(predict_cls, tf.int64), tf.cast(labels, tf.int64)), 'float'))
+    predict_cls_s = tf.argmax(input=zy, axis=1)
+    accuracy_s = tf.reduce_mean(input_tensor=tf.cast(tf.equal(tf.cast(predict_cls_s, tf.int64), tf.cast(labels, tf.int64)), 'float'))
     return zy, loss, accuracy, accuracy_s, predict_cls_s
 
 def _calculate_null_dist(s, n):
@@ -190,12 +190,12 @@ def _calculate_clustering_index(S):
 def broad_homogeneity_loss(embedding, labels):
 
     #normalize embeddings
-    embedding_norm = tf.norm(embedding, ord=2, axis=1, keep_dims=True)
+    embedding_norm = tf.norm(tensor=embedding, ord=2, axis=1, keepdims=True)
     embedding_norm = tf.reshape(embedding_norm, (-1,1))
-    embedding = tf.div(embedding, embedding_norm, name='norm_embedding')
+    embedding = tf.compat.v1.div(embedding, embedding_norm, name='norm_embedding')
 
     #compute svd
-    s = tf.svd(embedding, compute_uv=False, name='svd_embedding')
+    s = tf.linalg.svd(embedding, compute_uv=False, name='svd_embedding')
 
     #calculate clustering effects
     S = tf.stack([labels, embedding])

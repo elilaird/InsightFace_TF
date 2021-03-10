@@ -1,0 +1,63 @@
+TensorFlow 2.0 Upgrade Script
+-----------------------------
+Converted 2 files
+Detected 3 issues that require attention
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+File: ./face_losses.py
+--------------------------------------------------------------------------------
+./face_losses.py:24:18: WARNING: tf.get_variable requires manual check. tf.get_variable returns ResourceVariables by default in 2.0, which have well-defined semantics and are stricter about shapes. You can disable this behavior by passing use_resource=False, or by calling tf.compat.v1.disable_resource_variables().
+./face_losses.py:67:18: WARNING: tf.get_variable requires manual check. tf.get_variable returns ResourceVariables by default in 2.0, which have well-defined semantics and are stricter about shapes. You can disable this behavior by passing use_resource=False, or by calling tf.compat.v1.disable_resource_variables().
+./face_losses.py:93:14: WARNING: tf.get_variable requires manual check. tf.get_variable returns ResourceVariables by default in 2.0, which have well-defined semantics and are stricter about shapes. You can disable this behavior by passing use_resource=False, or by calling tf.compat.v1.disable_resource_variables().
+================================================================================
+Detailed log follows:
+
+================================================================================
+================================================================================
+Input tree: '.'
+================================================================================
+--------------------------------------------------------------------------------
+Processing file './__init__.py'
+ outputting to './__init__.py'
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+Processing file './face_losses.py'
+ outputting to './face_losses.py'
+--------------------------------------------------------------------------------
+
+20:9: INFO: Renamed 'tf.variable_scope' to 'tf.compat.v1.variable_scope'
+22:25: INFO: Added keywords to args of function 'tf.norm'
+22:25: INFO: Renamed keyword argument for tf.norm from keep_dims to keepdims
+23:20: INFO: Renamed 'tf.div' to 'tf.compat.v1.div'
+24:18: WARNING: tf.get_variable requires manual check. tf.get_variable returns ResourceVariables by default in 2.0, which have well-defined semantics and are stricter about shapes. You can disable this behavior by passing use_resource=False, or by calling tf.compat.v1.disable_resource_variables().
+24:18: INFO: Renamed 'tf.get_variable' to 'tf.compat.v1.get_variable'
+26:23: INFO: Added keywords to args of function 'tf.norm'
+26:23: INFO: Renamed keyword argument for tf.norm from keep_dims to keepdims
+27:18: INFO: Renamed 'tf.div' to 'tf.compat.v1.div'
+42:22: INFO: Renamed 'tf.where' to 'tf.compat.v1.where'
+63:9: INFO: Renamed 'tf.variable_scope' to 'tf.compat.v1.variable_scope'
+65:25: INFO: Added keywords to args of function 'tf.norm'
+65:25: INFO: Renamed keyword argument for tf.norm from keep_dims to keepdims
+66:20: INFO: Renamed 'tf.div' to 'tf.compat.v1.div'
+67:18: WARNING: tf.get_variable requires manual check. tf.get_variable returns ResourceVariables by default in 2.0, which have well-defined semantics and are stricter about shapes. You can disable this behavior by passing use_resource=False, or by calling tf.compat.v1.disable_resource_variables().
+67:18: INFO: Renamed 'tf.get_variable' to 'tf.compat.v1.get_variable'
+69:23: INFO: Added keywords to args of function 'tf.norm'
+69:23: INFO: Renamed keyword argument for tf.norm from keep_dims to keepdims
+70:18: INFO: Renamed 'tf.div' to 'tf.compat.v1.div'
+93:14: WARNING: tf.get_variable requires manual check. tf.get_variable returns ResourceVariables by default in 2.0, which have well-defined semantics and are stricter about shapes. You can disable this behavior by passing use_resource=False, or by calling tf.compat.v1.disable_resource_variables().
+93:14: INFO: Renamed 'tf.get_variable' to 'tf.compat.v1.get_variable'
+118:11: INFO: Added keywords to args of function 'tf.reduce_mean'
+119:18: INFO: Added keywords to args of function 'tf.argmax'
+120:15: INFO: Added keywords to args of function 'tf.reduce_mean'
+121:20: INFO: Added keywords to args of function 'tf.argmax'
+122:17: INFO: Added keywords to args of function 'tf.reduce_mean'
+193:21: INFO: Added keywords to args of function 'tf.norm'
+193:21: INFO: Renamed keyword argument for tf.norm from keep_dims to keepdims
+195:16: INFO: Renamed 'tf.div' to 'tf.compat.v1.div'
+198:8: INFO: Renamed 'tf.svd' to 'tf.linalg.svd'
+--------------------------------------------------------------------------------
+

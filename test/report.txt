@@ -1,0 +1,261 @@
+TensorFlow 2.0 Upgrade Script
+-----------------------------
+Converted 15 files
+Detected 10 issues that require attention
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+File: ./benchmark/vgg19_slim_benchmark.py
+--------------------------------------------------------------------------------
+./benchmark/vgg19_slim_benchmark.py:5:7: ERROR: Using member tf.contrib.slim in deprecated module tf.contrib. tf.contrib.slim cannot be converted automatically. tf.contrib will not be distributed with TensorFlow 2.0, please consider an alternative in non-contrib TensorFlow, a community-maintained repository such as tensorflow/addons, or fork the required code.
+--------------------------------------------------------------------------------
+File: ./benchmark/resnet_slim_benchmark.py
+--------------------------------------------------------------------------------
+./benchmark/resnet_slim_benchmark.py:6:7: ERROR: Using member tf.contrib.slim in deprecated module tf.contrib. tf.contrib.slim cannot be converted automatically. tf.contrib will not be distributed with TensorFlow 2.0, please consider an alternative in non-contrib TensorFlow, a community-maintained repository such as tensorflow/addons, or fork the required code.
+--------------------------------------------------------------------------------
+File: ./benchmark/resnet_tl_benchmark.py
+--------------------------------------------------------------------------------
+./benchmark/resnet_tl_benchmark.py:7:7: ERROR: Using member tf.contrib.slim in deprecated module tf.contrib. tf.contrib.slim cannot be converted automatically. tf.contrib will not be distributed with TensorFlow 2.0, please consider an alternative in non-contrib TensorFlow, a community-maintained repository such as tensorflow/addons, or fork the required code.
+--------------------------------------------------------------------------------
+File: ./multiple_gpu_test/test_mgpu_mnist.py
+--------------------------------------------------------------------------------
+./multiple_gpu_test/test_mgpu_mnist.py:75:20: WARNING: tf.get_variable requires manual check. tf.get_variable returns ResourceVariables by default in 2.0, which have well-defined semantics and are stricter about shapes. You can disable this behavior by passing use_resource=False, or by calling tf.compat.v1.disable_resource_variables().
+./multiple_gpu_test/test_mgpu_mnist.py:79:28: WARNING: tf.get_variable requires manual check. tf.get_variable returns ResourceVariables by default in 2.0, which have well-defined semantics and are stricter about shapes. You can disable this behavior by passing use_resource=False, or by calling tf.compat.v1.disable_resource_variables().
+./multiple_gpu_test/test_mgpu_mnist.py:82:28: WARNING: tf.get_variable requires manual check. tf.get_variable returns ResourceVariables by default in 2.0, which have well-defined semantics and are stricter about shapes. You can disable this behavior by passing use_resource=False, or by calling tf.compat.v1.disable_resource_variables().
+./multiple_gpu_test/test_mgpu_mnist.py:171:22: WARNING: tf.get_variable requires manual check. tf.get_variable returns ResourceVariables by default in 2.0, which have well-defined semantics and are stricter about shapes. You can disable this behavior by passing use_resource=False, or by calling tf.compat.v1.disable_resource_variables().
+--------------------------------------------------------------------------------
+File: ./multiple_gpu_test/test_tensorlayer.py
+--------------------------------------------------------------------------------
+./multiple_gpu_test/test_tensorlayer.py:75:20: WARNING: tf.get_variable requires manual check. tf.get_variable returns ResourceVariables by default in 2.0, which have well-defined semantics and are stricter about shapes. You can disable this behavior by passing use_resource=False, or by calling tf.compat.v1.disable_resource_variables().
+./multiple_gpu_test/test_tensorlayer.py:79:28: WARNING: tf.get_variable requires manual check. tf.get_variable returns ResourceVariables by default in 2.0, which have well-defined semantics and are stricter about shapes. You can disable this behavior by passing use_resource=False, or by calling tf.compat.v1.disable_resource_variables().
+./multiple_gpu_test/test_tensorlayer.py:82:28: WARNING: tf.get_variable requires manual check. tf.get_variable returns ResourceVariables by default in 2.0, which have well-defined semantics and are stricter about shapes. You can disable this behavior by passing use_resource=False, or by calling tf.compat.v1.disable_resource_variables().
+================================================================================
+Detailed log follows:
+
+================================================================================
+================================================================================
+Input tree: '.'
+================================================================================
+--------------------------------------------------------------------------------
+Processing file './test_losses.py'
+ outputting to './test_losses.py'
+--------------------------------------------------------------------------------
+
+21:9: INFO: Renamed 'tf.variable_scope' to 'tf.compat.v1.variable_scope'
+23:25: INFO: Added keywords to args of function 'tf.norm'
+23:25: INFO: Renamed keyword argument for tf.norm from keep_dims to keepdims
+24:20: INFO: Renamed 'tf.div' to 'tf.compat.v1.div'
+25:23: INFO: Added keywords to args of function 'tf.norm'
+25:23: INFO: Renamed keyword argument for tf.norm from keep_dims to keepdims
+26:18: INFO: Renamed 'tf.div' to 'tf.compat.v1.div'
+41:22: INFO: Renamed 'tf.where' to 'tf.compat.v1.where'
+59:11: INFO: Renamed 'tf.Session' to 'tf.compat.v1.Session'
+60:13: INFO: Renamed 'tf.global_variables_initializer' to 'tf.compat.v1.global_variables_initializer'
+71:11: INFO: Renamed 'tf.Session' to 'tf.compat.v1.Session'
+72:13: INFO: Renamed 'tf.global_variables_initializer' to 'tf.compat.v1.global_variables_initializer'
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+Processing file './resnet_test_static.py'
+ outputting to './resnet_test_static.py'
+--------------------------------------------------------------------------------
+
+9:8: INFO: Renamed 'tf.placeholder' to 'tf.compat.v1.placeholder'
+10:15: INFO: Renamed 'tf.ConfigProto' to 'tf.compat.v1.ConfigProto'
+11:11: INFO: Renamed 'tf.Session' to 'tf.compat.v1.Session'
+16:11: INFO: Renamed 'tf.get_collection' to 'tf.compat.v1.get_collection'
+16:29: INFO: Renamed 'tf.GraphKeys' to 'tf.compat.v1.GraphKeys'
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+Processing file './memory_usage_test.py'
+ outputting to './memory_usage_test.py'
+--------------------------------------------------------------------------------
+
+29:13: INFO: Renamed 'tf.python_io.TFRecordWriter' to 'tf.io.TFRecordWriter'
+68:13: INFO: Renamed 'tf.python_io.TFRecordWriter' to 'tf.io.TFRecordWriter'
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+Processing file './benchmark/tensorlayer_batchsize_test.py'
+ outputting to './benchmark/tensorlayer_batchsize_test.py'
+--------------------------------------------------------------------------------
+
+7:20: INFO: Changing tf.contrib.layers xavier initializer to a tf.compat.v1.keras.initializers.VarianceScaling and converting arguments.
+
+67:8: INFO: Renamed 'tf.placeholder' to 'tf.compat.v1.placeholder'
+68:9: INFO: Renamed 'tf.placeholder' to 'tf.compat.v1.placeholder'
+72:15: INFO: Renamed 'tf.train.GradientDescentOptimizer' to 'tf.compat.v1.train.GradientDescentOptimizer'
+74:11: INFO: Renamed 'tf.Session' to 'tf.compat.v1.Session'
+77:34: INFO: Added keywords to args of function 'tf.argmax'
+78:10: INFO: Added keywords to args of function 'tf.reduce_mean'
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+Processing file './benchmark/mxnet_batchsize_test.py'
+ outputting to './benchmark/mxnet_batchsize_test.py'
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+Processing file './benchmark/vgg19_slim_benchmark.py'
+ outputting to './benchmark/vgg19_slim_benchmark.py'
+--------------------------------------------------------------------------------
+
+5:7: ERROR: Using member tf.contrib.slim in deprecated module tf.contrib. tf.contrib.slim cannot be converted automatically. tf.contrib will not be distributed with TensorFlow 2.0, please consider an alternative in non-contrib TensorFlow, a community-maintained repository such as tensorflow/addons, or fork the required code.
+10:12: INFO: Renamed 'tf.placeholder' to 'tf.compat.v1.placeholder'
+11:13: INFO: Renamed 'tf.placeholder' to 'tf.compat.v1.placeholder'
+14:20: INFO: Added keywords to args of function 'tf.reduce_mean'
+14:35: INFO: Renamed keyword argument for tf.nn.softmax from dim to axis
+15:13: INFO: Added keywords to args of function 'tf.norm'
+16:15: INFO: Renamed 'tf.train.AdamOptimizer' to 'tf.compat.v1.train.AdamOptimizer'
+17:11: INFO: Renamed 'tf.Session' to 'tf.compat.v1.Session'
+18:12: INFO: Renamed 'tf.train.Saver' to 'tf.compat.v1.train.Saver'
+19:13: INFO: Renamed 'tf.global_variables_initializer' to 'tf.compat.v1.global_variables_initializer'
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+Processing file './benchmark/__init__.py'
+ outputting to './benchmark/__init__.py'
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+Processing file './benchmark/vgg19_tl_benchmark.py'
+ outputting to './benchmark/vgg19_tl_benchmark.py'
+--------------------------------------------------------------------------------
+
+7:11: INFO: Renamed 'tf.Session' to 'tf.compat.v1.Session'
+8:8: INFO: Renamed 'tf.placeholder' to 'tf.compat.v1.placeholder'
+9:8: INFO: Renamed 'tf.placeholder' to 'tf.compat.v1.placeholder'
+13:11: INFO: Added keywords to args of function 'tf.reduce_mean'
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+Processing file './benchmark/resnet_slim_benchmark.py'
+ outputting to './benchmark/resnet_slim_benchmark.py'
+--------------------------------------------------------------------------------
+
+6:7: ERROR: Using member tf.contrib.slim in deprecated module tf.contrib. tf.contrib.slim cannot be converted automatically. tf.contrib will not be distributed with TensorFlow 2.0, please consider an alternative in non-contrib TensorFlow, a community-maintained repository such as tensorflow/addons, or fork the required code.
+12:12: INFO: Renamed 'tf.placeholder' to 'tf.compat.v1.placeholder'
+13:13: INFO: Renamed 'tf.placeholder' to 'tf.compat.v1.placeholder'
+17:20: INFO: Added keywords to args of function 'tf.reduce_mean'
+17:35: INFO: Renamed keyword argument for tf.nn.softmax from dim to axis
+18:13: INFO: Added keywords to args of function 'tf.norm'
+19:15: INFO: Renamed 'tf.train.AdamOptimizer' to 'tf.compat.v1.train.AdamOptimizer'
+20:11: INFO: Renamed 'tf.Session' to 'tf.compat.v1.Session'
+21:12: INFO: Renamed 'tf.train.Saver' to 'tf.compat.v1.train.Saver'
+22:13: INFO: Renamed 'tf.global_variables_initializer' to 'tf.compat.v1.global_variables_initializer'
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+Processing file './benchmark/utils_final.py'
+ outputting to './benchmark/utils_final.py'
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+Processing file './benchmark/resnet_tl_benchmark.py'
+ outputting to './benchmark/resnet_tl_benchmark.py'
+--------------------------------------------------------------------------------
+
+7:7: ERROR: Using member tf.contrib.slim in deprecated module tf.contrib. tf.contrib.slim cannot be converted automatically. tf.contrib will not be distributed with TensorFlow 2.0, please consider an alternative in non-contrib TensorFlow, a community-maintained repository such as tensorflow/addons, or fork the required code.
+13:12: INFO: Renamed 'tf.placeholder' to 'tf.compat.v1.placeholder'
+14:13: INFO: Renamed 'tf.placeholder' to 'tf.compat.v1.placeholder'
+18:20: INFO: Added keywords to args of function 'tf.reduce_mean'
+18:35: INFO: Renamed keyword argument for tf.nn.softmax from dim to axis
+20:13: INFO: Added keywords to args of function 'tf.norm'
+21:15: INFO: Renamed 'tf.train.AdamOptimizer' to 'tf.compat.v1.train.AdamOptimizer'
+22:11: INFO: Renamed 'tf.Session' to 'tf.compat.v1.Session'
+23:12: INFO: Renamed 'tf.train.Saver' to 'tf.compat.v1.train.Saver'
+24:13: INFO: Renamed 'tf.global_variables_initializer' to 'tf.compat.v1.global_variables_initializer'
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+Processing file './benchmark/gluon_batchsize_test.py'
+ outputting to './benchmark/gluon_batchsize_test.py'
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+Processing file './multiple_gpu_test/test_mgpu_mnist.py'
+ outputting to './multiple_gpu_test/test_mgpu_mnist.py'
+--------------------------------------------------------------------------------
+
+59:19: INFO: tf.truncated_normal_initializer requires manual check. Initializers no longer have the dtype argument in the constructor or partition_info argument in the __call__ method.
+The calls have been converted to compat.v1 for safety (even though they may already have been correct).
+59:19: INFO: Renamed 'tf.truncated_normal_initializer' to 'tf.compat.v1.truncated_normal_initializer'
+60:19: INFO: tf.constant_initializer requires manual check. Initializers no longer have the dtype argument in the constructor or partition_info argument in the __call__ method.
+The calls have been converted to compat.v1 for safety (even though they may already have been correct).
+60:19: INFO: Renamed 'tf.constant_initializer' to 'tf.compat.v1.constant_initializer'
+73:13: INFO: Renamed 'tf.variable_scope' to 'tf.compat.v1.variable_scope'
+75:20: WARNING: tf.get_variable requires manual check. tf.get_variable returns ResourceVariables by default in 2.0, which have well-defined semantics and are stricter about shapes. You can disable this behavior by passing use_resource=False, or by calling tf.compat.v1.disable_resource_variables().
+75:20: INFO: Renamed 'tf.get_variable' to 'tf.compat.v1.get_variable'
+79:28: WARNING: tf.get_variable requires manual check. tf.get_variable returns ResourceVariables by default in 2.0, which have well-defined semantics and are stricter about shapes. You can disable this behavior by passing use_resource=False, or by calling tf.compat.v1.disable_resource_variables().
+79:28: INFO: Renamed 'tf.get_variable' to 'tf.compat.v1.get_variable'
+82:28: WARNING: tf.get_variable requires manual check. tf.get_variable returns ResourceVariables by default in 2.0, which have well-defined semantics and are stricter about shapes. You can disable this behavior by passing use_resource=False, or by calling tf.compat.v1.disable_resource_variables().
+82:28: INFO: Renamed 'tf.get_variable' to 'tf.compat.v1.get_variable'
+158:11: INFO: Added keywords to args of function 'tf.reduce_mean'
+171:22: WARNING: tf.get_variable requires manual check. tf.get_variable returns ResourceVariables by default in 2.0, which have well-defined semantics and are stricter about shapes. You can disable this behavior by passing use_resource=False, or by calling tf.compat.v1.disable_resource_variables().
+171:22: INFO: Renamed 'tf.get_variable' to 'tf.compat.v1.get_variable'
+173:24: INFO: tf.constant_initializer requires manual check. Initializers no longer have the dtype argument in the constructor or partition_info argument in the __call__ method.
+The calls have been converted to compat.v1 for safety (even though they may already have been correct).
+173:24: INFO: Renamed 'tf.constant_initializer' to 'tf.compat.v1.constant_initializer'
+175:13: INFO: tf.train.exponential_decay requires manual check. To use learning rate decay schedules with TensorFlow 2.0, switch to the schedules in `tf.keras.optimizers.schedules`.
+
+175:13: INFO: Renamed 'tf.train.exponential_decay' to 'tf.compat.v1.train.exponential_decay'
+181:14: INFO: Renamed 'tf.train.GradientDescentOptimizer' to 'tf.compat.v1.train.GradientDescentOptimizer'
+183:12: INFO: Renamed 'tf.placeholder' to 'tf.compat.v1.placeholder'
+184:13: INFO: Renamed 'tf.placeholder' to 'tf.compat.v1.placeholder'
+185:13: INFO: Renamed 'tf.variable_scope' to 'tf.compat.v1.variable_scope'
+185:31: INFO: Renamed 'tf.get_variable_scope' to 'tf.compat.v1.get_variable_scope'
+188:25: INFO: `name` passed to `name_scope`. Because you may be re-entering an existing scope, it is not safe to convert automatically,  the v2 name_scope does not support re-entering scopes by name.
+
+188:25: INFO: Renamed 'tf.name_scope' to 'tf.compat.v1.name_scope'
+194:36: INFO: Renamed 'tf.get_collection' to 'tf.compat.v1.get_collection'
+194:54: INFO: Renamed 'tf.GraphKeys' to 'tf.compat.v1.GraphKeys'
+197:24: INFO: Renamed 'tf.get_variable_scope' to 'tf.compat.v1.get_variable_scope'
+209:56: INFO: Renamed 'tf.trainable_variables' to 'tf.compat.v1.trainable_variables'
+213:15: INFO: Renamed 'tf.global_variables_initializer' to 'tf.compat.v1.global_variables_initializer'
+214:15: INFO: Renamed 'tf.Session' to 'tf.compat.v1.Session'
+214:33: INFO: Renamed 'tf.ConfigProto' to 'tf.compat.v1.ConfigProto'
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+Processing file './multiple_gpu_test/__init__.py'
+ outputting to './multiple_gpu_test/__init__.py'
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+Processing file './multiple_gpu_test/test_tensorlayer.py'
+ outputting to './multiple_gpu_test/test_tensorlayer.py'
+--------------------------------------------------------------------------------
+
+59:19: INFO: tf.truncated_normal_initializer requires manual check. Initializers no longer have the dtype argument in the constructor or partition_info argument in the __call__ method.
+The calls have been converted to compat.v1 for safety (even though they may already have been correct).
+59:19: INFO: Renamed 'tf.truncated_normal_initializer' to 'tf.compat.v1.truncated_normal_initializer'
+60:19: INFO: tf.constant_initializer requires manual check. Initializers no longer have the dtype argument in the constructor or partition_info argument in the __call__ method.
+The calls have been converted to compat.v1 for safety (even though they may already have been correct).
+60:19: INFO: Renamed 'tf.constant_initializer' to 'tf.compat.v1.constant_initializer'
+73:13: INFO: Renamed 'tf.variable_scope' to 'tf.compat.v1.variable_scope'
+75:20: WARNING: tf.get_variable requires manual check. tf.get_variable returns ResourceVariables by default in 2.0, which have well-defined semantics and are stricter about shapes. You can disable this behavior by passing use_resource=False, or by calling tf.compat.v1.disable_resource_variables().
+75:20: INFO: Renamed 'tf.get_variable' to 'tf.compat.v1.get_variable'
+79:28: WARNING: tf.get_variable requires manual check. tf.get_variable returns ResourceVariables by default in 2.0, which have well-defined semantics and are stricter about shapes. You can disable this behavior by passing use_resource=False, or by calling tf.compat.v1.disable_resource_variables().
+79:28: INFO: Renamed 'tf.get_variable' to 'tf.compat.v1.get_variable'
+82:28: WARNING: tf.get_variable requires manual check. tf.get_variable returns ResourceVariables by default in 2.0, which have well-defined semantics and are stricter about shapes. You can disable this behavior by passing use_resource=False, or by calling tf.compat.v1.disable_resource_variables().
+82:28: INFO: Renamed 'tf.get_variable' to 'tf.compat.v1.get_variable'
+100:12: INFO: Renamed 'tf.placeholder' to 'tf.compat.v1.placeholder'
+115:15: INFO: Renamed 'tf.Session' to 'tf.compat.v1.Session'
+115:33: INFO: Renamed 'tf.ConfigProto' to 'tf.compat.v1.ConfigProto'
+--------------------------------------------------------------------------------
+

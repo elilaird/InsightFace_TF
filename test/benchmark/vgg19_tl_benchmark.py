@@ -4,13 +4,13 @@ import numpy as np
 
 
 if __name__ == '__main__':
-    sess = tf.Session()
-    x = tf.placeholder(name="inputs_x", shape=[None, 224, 224, 3], dtype=tf.float32)
-    y = tf.placeholder(name='inputs_y', shape=[None, 1000], dtype=tf.float32)
+    sess = tf.compat.v1.Session()
+    x = tf.compat.v1.placeholder(name="inputs_x", shape=[None, 224, 224, 3], dtype=tf.float32)
+    y = tf.compat.v1.placeholder(name='inputs_y', shape=[None, 1000], dtype=tf.float32)
     network = get_vgg19(x, sess, pretrained=False)
     outputs_y = network.outputs
     probs = tf.nn.softmax(outputs_y, name="prob")
-    loss = tf.reduce_mean(tf.subtract(probs, y))
+    loss = tf.reduce_mean(input_tensor=tf.subtract(probs, y))
 
     while True:
         batch_size = 128

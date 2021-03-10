@@ -46,7 +46,7 @@ import os
 
 
 def _conv_layers(net_in):
-    with tf.name_scope('preprocess'):
+    with tf.compat.v1.name_scope('preprocess'):
         # Notice that we include a preprocessing layer that takes the RGB image
         # with pixels values in the range of 0-255 and subtracts the mean image
         # values (calculated over the entire ImageNet training set).
@@ -68,7 +68,7 @@ def _conv_layers(net_in):
         strides=[1, 1, 1, 1],
         padding='SAME',
         name='conv1_2')
-    network = PoolLayer(network, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', pool=tf.nn.max_pool, name='pool1')
+    network = PoolLayer(network, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', pool=tf.nn.max_pool2d, name='pool1')
 
     # conv2
     network = Conv2dLayer(
@@ -85,7 +85,7 @@ def _conv_layers(net_in):
         strides=[1, 1, 1, 1],
         padding='SAME',
         name='conv2_2')
-    network = PoolLayer(network, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', pool=tf.nn.max_pool, name='pool2')
+    network = PoolLayer(network, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', pool=tf.nn.max_pool2d, name='pool2')
 
     # conv3
     network = Conv2dLayer(
@@ -109,7 +109,7 @@ def _conv_layers(net_in):
         strides=[1, 1, 1, 1],
         padding='SAME',
         name='conv3_3')
-    network = PoolLayer(network, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', pool=tf.nn.max_pool, name='pool3')
+    network = PoolLayer(network, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', pool=tf.nn.max_pool2d, name='pool3')
 
     # conv4
     network = Conv2dLayer(
@@ -133,7 +133,7 @@ def _conv_layers(net_in):
         strides=[1, 1, 1, 1],
         padding='SAME',
         name='conv4_3')
-    network = PoolLayer(network, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', pool=tf.nn.max_pool, name='pool4')
+    network = PoolLayer(network, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', pool=tf.nn.max_pool2d, name='pool4')
 
     # conv5
     network = Conv2dLayer(
@@ -157,7 +157,7 @@ def _conv_layers(net_in):
         strides=[1, 1, 1, 1],
         padding='SAME',
         name='conv5_3')
-    network = PoolLayer(network, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', pool=tf.nn.max_pool, name='pool5')
+    network = PoolLayer(network, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', pool=tf.nn.max_pool2d, name='pool5')
     return network
 
 
@@ -190,9 +190,9 @@ def get_vgg16(x, sess=None, pretrained=True):
 if __name__ == '__main__':
     DATA_PATH = '/home/aurora/workspaces2/PycharmProjects/tensorflow/tensorlayer/example/data'
 
-    x = tf.placeholder(tf.float32, [None, 224, 224, 3])
-    tfconfig = tf.ConfigProto(allow_soft_placement=True)
-    with tf.Session(config=tfconfig) as sess:
+    x = tf.compat.v1.placeholder(tf.float32, [None, 224, 224, 3])
+    tfconfig = tf.compat.v1.ConfigProto(allow_soft_placement=True)
+    with tf.compat.v1.Session(config=tfconfig) as sess:
         network = get_vgg16(x, sess, pretrained=True)
         y = network.outputs
         network.print_params()

@@ -102,7 +102,7 @@ def conv2d_same(inputs, num_outputs, kernel_size, strides, rate=1, scope=None):
 
 
 def bottleneck(inputs, depth, depth_bottleneck, stride, rate=1, scope=None):
-    with tf.variable_scope(scope, 'bottleneck_v1') as sc:
+    with tf.compat.v1.variable_scope(scope, 'bottleneck_v1') as sc:
         depth_in = utils.last_dimension(inputs.outputs.get_shape(), min_rank=4)
         if depth == depth_in:
             shortcut = subsample(inputs, stride, 'shortcut')
@@ -131,7 +131,7 @@ def bottleneck(inputs, depth, depth_bottleneck, stride, rate=1, scope=None):
 
 
 def bottleneck_SE(inputs, depth, depth_bottleneck, stride, rate=1, scope=None):
-    with tf.variable_scope(scope, 'bottleneck_v1') as sc:
+    with tf.compat.v1.variable_scope(scope, 'bottleneck_v1') as sc:
         depth_in = utils.last_dimension(inputs.outputs.get_shape(), min_rank=4)
         if depth == depth_in:
             shortcut = subsample(inputs, stride, 'shortcut')
@@ -153,12 +153,12 @@ def bottleneck_SE(inputs, depth, depth_bottleneck, stride, rate=1, scope=None):
         residual = tl.layers.BatchNormLayer(residual, act=tf.identity, is_train=True, name='conv3_bn/BatchNorm')
 
         # squeeze
-        squeeze = tl.layers.InputLayer(tf.reduce_mean(residual.outputs, axis=[1, 2]), name='squeeze_layer')
+        squeeze = tl.layers.InputLayer(tf.reduce_mean(input_tensor=residual.outputs, axis=[1, 2]), name='squeeze_layer')
         # excitation
         excitation1 = tl.layers.DenseLayer(squeeze, n_units=int(depth/16.0), act=tf.nn.relu, name='excitation_1')
         excitation2 = tl.layers.DenseLayer(excitation1, n_units=depth, act=tf.nn.sigmoid, name='excitation_2')
         # scale
-        scale = tl.layers.ReshapeLayer(excitation2, shape=[tf.shape(excitation2.outputs)[0], 1, 1, depth], name='excitation_reshape')
+        scale = tl.layers.ReshapeLayer(excitation2, shape=[tf.shape(input=excitation2.outputs)[0], 1, 1, depth], name='excitation_reshape')
 
         residual_se = ElementwiseLayer(layer=[residual, scale],
                                     combine_fn=tf.multiply,
@@ -173,7 +173,7 @@ def bottleneck_SE(inputs, depth, depth_bottleneck, stride, rate=1, scope=None):
 
 
 def bottleneck_Xt(inputs, depth, stride, cardinality, cardinality_dim, rate=1, scope=None):
-    with tf.variable_scope(scope, 'bottleneck_v1') as sc:
+    with tf.compat.v1.variable_scope(scope, 'bottleneck_v1') as sc:
         depth_in = utils.last_dimension(inputs.outputs.get_shape(), min_rank=4)
         if depth == depth_in:
             shortcut = subsample(inputs, stride, 'shortcut')
@@ -212,7 +212,7 @@ def bottleneck_Xt(inputs, depth, stride, cardinality, cardinality_dim, rate=1, s
 
 def resnet(inputs, bottle_neck, blocks, num_classes=1000, scope=None, type=None):
     # mean_rgb_var = tf.Variable()
-    with tf.variable_scope(scope):
+    with tf.compat.v1.variable_scope(scope):
         mean_rgb_var = tf.Variable(dtype=tf.float32, name='mean_rgb', trainable=False, initial_value=[128.0, 128.0, 128.0])
         rgb_mean_dims = tf.reshape(mean_rgb_var, shape=[1, 1, 1, 3])
         inputs = tf.subtract(inputs, rgb_mean_dims)
@@ -223,9 +223,9 @@ def resnet(inputs, bottle_neck, blocks, num_classes=1000, scope=None, type=None)
         else:
             raise ValueError('The standard resnet must support the bottleneck layer')
         for block in blocks:
-            with tf.variable_scope(block.scope):
+            with tf.compat.v1.variable_scope(block.scope):
                 for i, var in enumerate(block.args):
-                    with tf.variable_scope('unit_%d' % (i+1)):
+                    with tf.compat.v1.variable_scope('unit_%d' % (i+1)):
                         if type=='resnext':
                             net = block.unit_fn(net, depth=var['depth'], stride=var['stride'],
                                                 cardinality=var['cardinality'],
@@ -233,7 +233,7 @@ def resnet(inputs, bottle_neck, blocks, num_classes=1000, scope=None, type=None)
                         else:
                             net = block.unit_fn(net, depth=var['depth'], depth_bottleneck=var['depth_bottleneck'],
                                                 stride=var['stride'], rate=var['rate'], scope=None)
-        net.outputs = tf.reduce_mean(net.outputs, [1, 2], keep_dims=True)
+        net.outputs = tf.reduce_mean(input_tensor=net.outputs, axis=[1, 2], keepdims=True)
         net = tl.layers.Conv2d(net, num_classes, filter_size=(1, 1), strides=(1, 1), act=None, name='logits')
         net.outputs = tf.squeeze(net.outputs, [1, 2], name='SpatialSqueeze')
         return net
@@ -375,7 +375,7 @@ def get_resnet(inputs, num_classes, num_layers, type='resnet', sess=None, pretra
                      type=type)
         if pretrained:
             var_ckpt = get_variables_in_checkpoint_file(ckpt_file_path)
-            vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)
+            vars = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.GLOBAL_VARIABLES)
             vars_dict = {}
             for var in vars:
                 var_name = var.op.name
@@ -393,7 +393,7 @@ def get_resnet(inputs, num_classes, num_layers, type='resnet', sess=None, pretra
                     vars_dict[var_name_new] = var
             tl.layers.initialize_global_variables(sess)
             if len(vars_dict.keys()) > 0:
-                saver = tf.train.Saver(vars_dict)
+                saver = tf.compat.v1.train.Saver(vars_dict)
                 saver.restore(sess, ckpt_file_path)
             return net
         else:
@@ -481,8 +481,8 @@ def get_resnet(inputs, num_classes, num_layers, type='resnet', sess=None, pretra
 
 
 if __name__ == '__main__':
-        x = tf.placeholder(dtype=tf.float32, shape=[1, 224, 224, 3], name='input_place')
-        sess = tf.Session()
+        x = tf.compat.v1.placeholder(dtype=tf.float32, shape=[1, 224, 224, 3], name='input_place')
+        sess = tf.compat.v1.Session()
         # # test resnet
         # nets = get_resnet(x, 1000, 50, type='resnet', sess=sess, pretrained=True)
         # with sess:

@@ -101,8 +101,8 @@ class BatchNormLayer(Layer):
             act=tf.identity,
             is_train=False,
             fix_gamma=True,
-            beta_init=tf.zeros_initializer,
-            gamma_init=tf.random_normal_initializer(mean=1.0, stddev=0.002),  # tf.ones_initializer,
+            beta_init=tf.compat.v1.zeros_initializer,
+            gamma_init=tf.compat.v1.random_normal_initializer(mean=1.0, stddev=0.002),  # tf.ones_initializer,
             # dtype = tf.float32,
             trainable=None,
             name='batchnorm_layer',
@@ -116,15 +116,15 @@ class BatchNormLayer(Layer):
         from tensorflow.python.training import moving_averages
         from tensorflow.python.ops import control_flow_ops
 
-        with tf.variable_scope(name) as vs:
+        with tf.compat.v1.variable_scope(name) as vs:
             axis = list(range(len(x_shape) - 1))
 
             ## 1. beta, gamma
-            if tf.__version__ > '0.12.1' and beta_init == tf.zeros_initializer:
+            if tf.__version__ > '0.12.1' and beta_init == tf.compat.v1.zeros_initializer:
                 beta_init = beta_init()
-            beta = tf.get_variable('beta', shape=params_shape, initializer=beta_init, dtype=tf.float32, trainable=is_train)  #, restore=restore)
+            beta = tf.compat.v1.get_variable('beta', shape=params_shape, initializer=beta_init, dtype=tf.float32, trainable=is_train)  #, restore=restore)
 
-            gamma = tf.get_variable(
+            gamma = tf.compat.v1.get_variable(
                 'gamma',
                 shape=params_shape,
                 initializer=gamma_init,
@@ -134,21 +134,21 @@ class BatchNormLayer(Layer):
 
             ## 2.
             if tf.__version__ > '0.12.1':
-                moving_mean_init = tf.zeros_initializer()
+                moving_mean_init = tf.compat.v1.zeros_initializer()
             else:
-                moving_mean_init = tf.zeros_initializer
-            moving_mean = tf.get_variable('moving_mean', params_shape, initializer=moving_mean_init, dtype=tf.float32, trainable=False)  #   restore=restore)
-            moving_variance = tf.get_variable(
+                moving_mean_init = tf.compat.v1.zeros_initializer
+            moving_mean = tf.compat.v1.get_variable('moving_mean', params_shape, initializer=moving_mean_init, dtype=tf.float32, trainable=False)  #   restore=restore)
+            moving_variance = tf.compat.v1.get_variable(
                 'moving_variance',
                 params_shape,
-                initializer=tf.constant_initializer(1.),
+                initializer=tf.compat.v1.constant_initializer(1.),
                 dtype=tf.float32,
                 trainable=False,
             )  #   restore=restore)
 
             ## 3.
             # These ops will only be preformed when training.
-            mean, variance = tf.nn.moments(self.inputs, axis)
+            mean, variance = tf.nn.moments(x=self.inputs, axes=axis)
             try:  # TF12
                 update_moving_mean = moving_averages.assign_moving_average(moving_mean, mean, decay, zero_debias=False)  # if zero_debias=True, has bias
                 update_moving_variance = moving_averages.assign_moving_average(
@@ -225,7 +225,7 @@ def conv2d_same(inputs, num_outputs, kernel_size, strides, rate=1, w_init=None, 
 
 
 def bottleneck_IR(inputs, depth, depth_bottleneck, stride, rate=1, w_init=None, scope=None, trainable=None):
-    with tf.variable_scope(scope, 'bottleneck_v1') as sc:
+    with tf.compat.v1.variable_scope(scope, 'bottleneck_v1') as sc:
         depth_in = utils.last_dimension(inputs.outputs.get_shape(), min_rank=4)
         if depth == depth_in:
             shortcut = subsample(inputs, stride, 'shortcut')
@@ -250,7 +250,7 @@ def bottleneck_IR(inputs, depth, depth_bottleneck, stride, rate=1, w_init=None, 
 
 
 def bottleneck_IR_SE(inputs, depth, depth_bottleneck, stride, rate=1, w_init=None, scope=None, trainable=None):
-    with tf.variable_scope(scope, 'bottleneck_v1') as sc:
+    with tf.compat.v1.variable_scope(scope, 'bottleneck_v1') as sc:
         depth_in = utils.last_dimension(inputs.outputs.get_shape(), min_rank=4)
         if depth == depth_in:
             shortcut = subsample(inputs, stride, 'shortcut')
@@ -268,7 +268,7 @@ def bottleneck_IR_SE(inputs, depth, depth_bottleneck, stride, rate=1, w_init=Non
         # bottleneck layer 2
         residual = conv2d_same(residual, depth, kernel_size=3, strides=stride, rate=rate, w_init=w_init, scope='conv2', trainable=trainable)
         # squeeze
-        squeeze = tl.layers.InputLayer(tf.reduce_mean(residual.outputs, axis=[1, 2]), name='squeeze_layer')
+        squeeze = tl.layers.InputLayer(tf.reduce_mean(input_tensor=residual.outputs, axis=[1, 2]), name='squeeze_layer')
         # excitation
         excitation1 = tl.layers.DenseLayer(squeeze, n_units=int(depth/16.0), act=tf.nn.relu,
                                            W_init=w_init, name='excitation_1')
@@ -276,7 +276,7 @@ def bottleneck_IR_SE(inputs, depth, depth_bottleneck, stride, rate=1, w_init=Non
         excitation2 = tl.layers.DenseLayer(excitation1, n_units=depth, act=tf.nn.sigmoid,
                                            W_init=w_init, name='excitation_2')
         # scale
-        scale = tl.layers.ReshapeLayer(excitation2, shape=[tf.shape(excitation2.outputs)[0], 1, 1, depth], name='excitation_reshape')
+        scale = tl.layers.ReshapeLayer(excitation2, shape=[tf.shape(input=excitation2.outputs)[0], 1, 1, depth], name='excitation_reshape')
 
         residual_se = ElementwiseLayer(layer=[residual, scale],
                                        combine_fn=tf.multiply,
@@ -291,7 +291,7 @@ def bottleneck_IR_SE(inputs, depth, depth_bottleneck, stride, rate=1, w_init=Non
 
 
 def resnet(inputs, bottle_neck, blocks, w_init=None, trainable=None, reuse=False, keep_rate=None, scope=None):
-    with tf.variable_scope(scope, reuse=reuse):
+    with tf.compat.v1.variable_scope(scope, reuse=reuse):
         # inputs = tf.subtract(inputs, 127.5)
         # inputs = tf.multiply(inputs, 0.0078125)
         net_inputs = tl.layers.InputLayer(inputs, name='input_layer')
@@ -303,15 +303,15 @@ def resnet(inputs, bottle_neck, blocks, w_init=None, trainable=None, reuse=False
         else:
             raise ValueError('The standard resnet must support the bottleneck layer')
         for block in blocks:
-            with tf.variable_scope(block.scope):
+            with tf.compat.v1.variable_scope(block.scope):
                 for i, var in enumerate(block.args):
-                    with tf.variable_scope('unit_%d' % (i+1)):
+                    with tf.compat.v1.variable_scope('unit_%d' % (i+1)):
                         net = block.unit_fn(net, depth=var['depth'], depth_bottleneck=var['depth_bottleneck'],
                                             w_init=w_init, stride=var['stride'], rate=var['rate'], scope=None,
                                             trainable=trainable)
         net = BatchNormLayer(net, act=tf.identity, is_train=True, name='E_BN1', trainable=trainable)
         # net = tl.layers.DropoutLayer(net, keep=0.4, name='E_Dropout')
-        net.outputs = tf.nn.dropout(net.outputs, keep_prob=keep_rate, name='E_Dropout')
+        net.outputs = tf.nn.dropout(net.outputs, rate=1 - (keep_rate), name='E_Dropout')
         net_shape = net.outputs.get_shape()
         net = tl.layers.ReshapeLayer(net, shape=[-1, net_shape[1]*net_shape[2]*net_shape[3]], name='E_Reshapelayer')
         net = tl.layers.DenseLayer(net, n_units=512, W_init=w_init, name='E_DenseLayer')
@@ -401,10 +401,10 @@ def get_resnet(inputs, num_layers, type=None, w_init=None, trainable=None, sess=
 
 
 if __name__ == '__main__':
-        x = tf.placeholder(dtype=tf.float32, shape=[None, 112, 112, 3], name='input_place')
-        sess = tf.Session()
+        x = tf.compat.v1.placeholder(dtype=tf.float32, shape=[None, 112, 112, 3], name='input_place')
+        sess = tf.compat.v1.Session()
         # w_init = tf.truncated_normal_initializer(mean=10, stddev=5e-2)
-        w_init = tf.contrib.layers.xavier_initializer(uniform=False)
+        w_init = tf.compat.v1.keras.initializers.VarianceScaling(scale=1.0, mode="fan_avg", distribution=("uniform" if False else "truncated_normal"))
         # test resnetse
         nets = get_resnet(x, 50, type='ir', w_init=w_init, sess=sess)
         tl.layers.initialize_global_variables(sess)

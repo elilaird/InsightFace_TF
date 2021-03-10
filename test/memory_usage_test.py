@@ -26,7 +26,7 @@ def parse_args():
 
 def mx2tfrecords_mem_test(imgidx, imgrec, args):
     output_path = os.path.join(args.tfrecords_file_path, 'tran.tfrecords')
-    writer = tf.python_io.TFRecordWriter(output_path)
+    writer = tf.io.TFRecordWriter(output_path)
     for i in imgidx:
         img_info = imgrec.read_idx(i)
         header, img = mx.recordio.unpack(img_info)
@@ -65,7 +65,7 @@ def mx2tfrecords_mem_test(imgidx, imgrec, args):
 
 def mx2tfrecords(imgidx, imgrec, args):
     output_path = os.path.join(args.tfrecords_file_path, 'tran.tfrecords')
-    writer = tf.python_io.TFRecordWriter(output_path)
+    writer = tf.io.TFRecordWriter(output_path)
     for i in imgidx:
         img_info = imgrec.read_idx(i)
         header, img = mx.recordio.unpack(img_info)

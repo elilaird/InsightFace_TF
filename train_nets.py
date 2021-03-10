@@ -47,11 +47,11 @@ if __name__ == '__main__':
     # 1. define global parameters
     args = get_parser()
     global_step = tf.Variable(name='global_step', initial_value=0, trainable=False)
-    inc_op = tf.assign_add(global_step, 1, name='increment_global_step')
-    images = tf.placeholder(name='img_inputs', shape=[None, *args.image_size, 3], dtype=tf.float32)
-    labels = tf.placeholder(name='img_labels', shape=[None, ], dtype=tf.int64)
+    inc_op = tf.compat.v1.assign_add(global_step, 1, name='increment_global_step')
+    images = tf.compat.v1.placeholder(name='img_inputs', shape=[None, *args.image_size, 3], dtype=tf.float32)
+    labels = tf.compat.v1.placeholder(name='img_labels', shape=[None, ], dtype=tf.int64)
     # trainable = tf.placeholder(name='trainable_bn', dtype=tf.bool)
-    dropout_rate = tf.placeholder(name='dropout_rate', dtype=tf.float32)
+    dropout_rate = tf.compat.v1.placeholder(name='dropout_rate', dtype=tf.float32)
     # 2 prepare train datasets and test datasets by using tensorflow dataset api
     # 2.1 train datasets
     # the image is substracted 127.5 and multiplied 1/128.
@@ -61,7 +61,7 @@ if __name__ == '__main__':
     dataset = dataset.map(parse_function)
     dataset = dataset.shuffle(buffer_size=args.buffer_size)
     dataset = dataset.batch(args.batch_size)
-    iterator = dataset.make_initializable_iterator()
+    iterator = tf.compat.v1.data.make_initializable_iterator(dataset)
     next_element = iterator.get_next()
 
     # 2.2 prepare validate datasets
@@ -76,7 +76,7 @@ if __name__ == '__main__':
     # 3. define network, loss, optimize method, learning rate schedule, summary writer, saver
 
     # 3.1 inference phase
-    w_init_method = tf.contrib.layers.xavier_initializer(uniform=False)
+    w_init_method = tf.compat.v1.keras.initializers.VarianceScaling(scale=1.0, mode="fan_avg", distribution=("uniform" if False else "truncated_normal"))
     net = get_resnet(images, args.net_depth, type='ir', w_init=w_init_method, trainable=True, keep_rate=dropout_rate)
 
     # 3.2 get arcface loss
@@ -87,7 +87,7 @@ if __name__ == '__main__':
     embedding_tensor = test_net.outputs
 
     # 3.3 define the cross entropy
-    inference_loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logit, labels=labels))
+    inference_loss = tf.reduce_mean(input_tensor=tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logit, labels=labels))
     # inference_loss_avg = tf.reduce_mean(inference_loss)
 
     # 3.4 define weight decay losses
@@ -96,17 +96,17 @@ if __name__ == '__main__':
     # print('##########'*30)
     wd_loss = 0
     for weights in tl.layers.get_variables_with_name('W_conv2d', True, True):
-        wd_loss += tf.contrib.layers.l2_regularizer(args.weight_deacy)(weights)
+        wd_loss += tf.keras.regularizers.l2(0.5 * (args.weight_deacy))(weights)
     for W in tl.layers.get_variables_with_name('resnet_v1_50/E_DenseLayer/W', True, True):
-        wd_loss += tf.contrib.layers.l2_regularizer(args.weight_deacy)(W)
+        wd_loss += tf.keras.regularizers.l2(0.5 * (args.weight_deacy))(W)
     for weights in tl.layers.get_variables_with_name('embedding_weights', True, True):
-        wd_loss += tf.contrib.layers.l2_regularizer(args.weight_deacy)(weights)
+        wd_loss += tf.keras.regularizers.l2(0.5 * (args.weight_deacy))(weights)
     for gamma in tl.layers.get_variables_with_name('gamma', True, True):
-        wd_loss += tf.contrib.layers.l2_regularizer(args.weight_deacy)(gamma)
+        wd_loss += tf.keras.regularizers.l2(0.5 * (args.weight_deacy))(gamma)
     # for beta in tl.layers.get_variables_with_name('beta', True, True):
     #     wd_loss += tf.contrib.layers.l2_regularizer(args.weight_deacy)(beta)
     for alphas in tl.layers.get_variables_with_name('alphas', True, True):
-        wd_loss += tf.contrib.layers.l2_regularizer(args.weight_deacy)(alphas)
+        wd_loss += tf.keras.regularizers.l2(0.5 * (args.weight_deacy))(alphas)
     # for bias in tl.layers.get_variables_with_name('resnet_v1_50/E_DenseLayer/b', True, True):
     #     wd_loss += tf.contrib.layers.l2_regularizer(args.weight_deacy)(bias)
 
@@ -117,14 +117,14 @@ if __name__ == '__main__':
     p = int(512.0/args.batch_size)
     lr_steps = [p*val for val in args.lr_steps]
     print(lr_steps)
-    lr = tf.train.piecewise_constant(global_step, boundaries=lr_steps, values=[0.001, 0.0005, 0.0003, 0.0001], name='lr_schedule')
+    lr = tf.compat.v1.train.piecewise_constant(global_step, boundaries=lr_steps, values=[0.001, 0.0005, 0.0003, 0.0001], name='lr_schedule')
 
     # 3.7 define the optimize method
-    opt = tf.train.MomentumOptimizer(learning_rate=lr, momentum=args.momentum)
+    opt = tf.compat.v1.train.MomentumOptimizer(learning_rate=lr, momentum=args.momentum)
 
     # 3.8 get train op
     grads = opt.compute_gradients(total_loss)
-    update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+    update_ops = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.UPDATE_OPS)
 
     with tf.control_dependencies(update_ops):
         train_op = opt.apply_gradients(grads, global_step=global_step)
@@ -132,41 +132,41 @@ if __name__ == '__main__':
 
     # 3.9 define the inference accuracy used during validate or test
     pred = tf.nn.softmax(logit)
-    acc = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(pred, axis=1), labels), dtype=tf.float32))
+    acc = tf.reduce_mean(input_tensor=tf.cast(tf.equal(tf.argmax(input=pred, axis=1), labels), dtype=tf.float32))
 
     # 3.10 define sess
-    config = tf.ConfigProto(allow_soft_placement=True, log_device_placement=args.log_device_mapping)
+    config = tf.compat.v1.ConfigProto(allow_soft_placement=True, log_device_placement=args.log_device_mapping)
     config.gpu_options.allow_growth = True
 
-    sess = tf.Session(config=config)
+    sess = tf.compat.v1.Session(config=config)
 
     # 3.11 summary writer
-    summary = tf.summary.FileWriter(args.summary_path, sess.graph)
+    summary = tf.compat.v1.summary.FileWriter(args.summary_path, sess.graph)
     summaries = []
 
     # # 3.11.1 add grad histogram op
     for grad, var in grads:
         if grad is not None:
-            summaries.append(tf.summary.histogram(var.op.name + '/gradients', grad))
+            summaries.append(tf.compat.v1.summary.histogram(var.op.name + '/gradients', grad))
 
     # 3.11.2 add trainabel variable gradients
-    for var in tf.trainable_variables():
-        summaries.append(tf.summary.histogram(var.op.name, var))
+    for var in tf.compat.v1.trainable_variables():
+        summaries.append(tf.compat.v1.summary.histogram(var.op.name, var))
 
     # 3.11.3 add loss summary
-    summaries.append(tf.summary.scalar('inference_loss', inference_loss))
-    summaries.append(tf.summary.scalar('wd_loss', wd_loss))
-    summaries.append(tf.summary.scalar('total_loss', total_loss))
+    summaries.append(tf.compat.v1.summary.scalar('inference_loss', inference_loss))
+    summaries.append(tf.compat.v1.summary.scalar('wd_loss', wd_loss))
+    summaries.append(tf.compat.v1.summary.scalar('total_loss', total_loss))
 
     # 3.11.4 add learning rate
-    summaries.append(tf.summary.scalar('leraning_rate', lr))
-    summary_op = tf.summary.merge(summaries)
+    summaries.append(tf.compat.v1.summary.scalar('leraning_rate', lr))
+    summary_op = tf.compat.v1.summary.merge(summaries)
 
     # 3.12 saver
-    saver = tf.train.Saver(max_to_keep=args.saver_maxkeep)
+    saver = tf.compat.v1.train.Saver(max_to_keep=args.saver_maxkeep)
 
     # 3.13 init all variables
-    sess.run(tf.global_variables_initializer())
+    sess.run(tf.compat.v1.global_variables_initializer())
 
     # restore_saver = tf.train.Saver()
     # restore_saver.restore(sess, '/home/aurora/workspaces2018/InsightFace_TF/output/ckpt/InsightFace_iter_1110000.ckpt')
