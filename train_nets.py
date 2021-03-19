@@ -38,6 +38,11 @@ def get_parser():
     parser.add_argument('--ckpt_interval', default=10000, help='intervals to save ckpt file')
     parser.add_argument('--validate_interval', default=2000, help='intervals to save ckpt file')
     parser.add_argument('--show_info_interval', default=20, help='intervals to save ckpt file')
+    parser.add_argument('--num_labels', default=[None, ], help='number of labels')
+
+    parser.add_argument('--broad_homogeneity_record', default=None, type=str,
+                        help='path to broad homogeneity loss dataset')
+
     args = parser.parse_args()
     return args
 
@@ -49,9 +54,22 @@ if __name__ == '__main__':
     global_step = tf.Variable(name='global_step', initial_value=0, trainable=False)
     inc_op = tf.assign_add(global_step, 1, name='increment_global_step')
     images = tf.placeholder(name='img_inputs', shape=[None, *args.image_size, 3], dtype=tf.float32)
-    labels = tf.placeholder(name='img_labels', shape=[None, ], dtype=tf.int64)
+    labels = tf.placeholder(name='img_labels', shape= [None, ], dtype=tf.int64)
+
+    if args.broad_homogeneity_record is not None:
+        bh_images = tf.placeholder(name='bh_inputs', shape=[None, *args.image_size, 3], dtype=tf.float32)
+        bh_labels = tf.placeholder(name='bh_labels', shape=[None, 1, 1], dtype=tf.int64)
+        tfrecords_bh = os.path.join(args.broad_homogeneity_record, 'tran.tfrecords')
+        bh_dataset = tf.data.TFRecordDataset(tfrecords_bh)
+        bh_dataset = bh_dataset.map(parse_function)
+        #bh_dataset = bh_dataset.shuffle(buffer_size=args.buffer_size)
+        bh_dataset = bh_dataset.batch(364)
+        bh_iterator = bh_dataset.make_initializable_iterator()
+        bh_next_element = bh_iterator.get_next()
+
     # trainable = tf.placeholder(name='trainable_bn', dtype=tf.bool)
     dropout_rate = tf.placeholder(name='dropout_rate', dtype=tf.float32)
+
     # 2 prepare train datasets and test datasets by using tensorflow dataset api
     # 2.1 train datasets
     # the image is substracted 127.5 and multiplied 1/128.

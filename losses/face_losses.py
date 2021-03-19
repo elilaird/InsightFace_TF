@@ -136,10 +136,10 @@ def _calculate_clustering_index(S):
     df[colnames[2:]] = df[colnames[2:]].apply(pd.to_numeric, downcast='float')
 
     #calculate variance across each feature
-    var = np.var(S.loc[:,3:], axis=1)
+    var_overall = df.var()
 
     #calculate variance across groups
-    grouped_var = df[colnames[1:]].groupby(['race']).var()
+    grouped_var = df.groupby(['demographic']).var()
 
     '''
     #pivot table so features are in a column
@@ -198,7 +198,7 @@ def broad_homogeneity_loss(embedding, labels):
     s = tf.svd(embedding, compute_uv=False, name='svd_embedding')
 
     #calculate clustering effects
-    S = tf.stack([labels, embedding])
+    S = tf.stack([labels[0],labels[1], embedding])
     clustering = _calculate_clustering_index(S.eval())
 
     return clustering
