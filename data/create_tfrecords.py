@@ -6,6 +6,8 @@ from pprint import pprint
 import argparse
 from PIL import Image
 from io import BytesIO
+import IPython.display as display
+
 
 print('Tf version: ', tf.__version__)
 tf.compat.v1.enable_eager_execution()
@@ -17,6 +19,7 @@ def parse_args():
     )
     parser.add_argument('--filepath', type=str, required=True, help='path to csv data file')
     parser.add_argument('--tfrecords_file_path', type=str, required=True, help='tfrecords output filename')
+    parser.add_argument('--tests', type=bool, default=False, help='test the already created record')
     args = parser.parse_args()
     return args
 
@@ -68,6 +71,9 @@ def writeToTFRecord(df, tf_file):
                 writer.write(tf_example.SerializeToString())
             print(idx)
 
+def _parse_function(example_proto):
+    # Parse the input `tf.train.Example` proto using the dictionary above.
+    return tf.io.parse_single_example(example_proto, feature_description)
 
 
 
@@ -77,12 +83,33 @@ if __name__ == '__main__':
     csv_file = args.filepath
     tfrecords_path = args.tfrecords_file_path
 
-    #read csv data
-    df = pd.read_csv(csv_file, index_col=0)
+    if not args.tests:
+        print('Creating tfrecords file ', tfrecords_path)
+        #read csv data
+        df = pd.read_csv(csv_file, index_col=0)
 
-    df['dem'] = df['dem'].astype('category')
-    df['subject'] = df['subject'].astype('category')
-    df['dem_enc'] = df['dem'].cat.codes
-    df['subject_enc'] = df['subject'].cat.codes
+        df['dem'] = df['dem'].astype('category')
+        df['subject'] = df['subject'].astype('category')
+        df['dem_enc'] = df['dem'].cat.codes
+        df['subject_enc'] = df['subject'].cat.codes
 
-    writeToTFRecord(df, tfrecords_path)
+        writeToTFRecord(df, tfrecords_path)
+    else:
+        print('Test reading ', tfrecords_path)
+        data = tf.data.TFRecordDataset(tfrecords_path)
+
+        # Create a description of the features.
+        feature_description = {
+            'subjectId': tf.io.FixedLenFeature([], tf.int64, default_value=0),
+            'imageId': tf.io.FixedLenFeature([], tf.int64, default_value=0),
+            'demId': tf.io.FixedLenFeature([], tf.int64, default_value=0),
+            'image_raw': tf.io.FixedLenFeature([], tf.string, default_value=''),
+        }
+
+        data = data.map(_parse_function)
+        pprint(data)
+
+        for image_features in data.take(1):
+            image_raw = image_features['image_raw'].numpy()
+            img = Image.open(BytesIO(image_raw))
+            img.show()
