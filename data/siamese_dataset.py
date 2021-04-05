@@ -2,13 +2,26 @@ import tensorflow as tf
 from data.mx2tfrecords import parse_function
 import os
 
+
+
 class SiameseDatasetGenerator(object):
     def __init__(self, tfrecord_filepath1, tfrecord_filepath2, shuffle=(False,False), buffer_size=(10000, None), batch_size=(32, 364)):
-        tfrecord1 = os.path.join(tfrecord_filepath1, 'tran.tfrecords')
-        tfrecord2 = os.path.join(tfrecord_filepath2, 'tran.tfrecords')
+        tfrecord1 = tfrecord_filepath1
+        tfrecord2 = tfrecord_filepath2
 
         self.dataset1 = tf.data.TFRecordDataset(tfrecord1)
         self.dataset2 = tf.data.TFRecordDataset(tfrecord2)
+
+        # Create a description of the features.
+        self.feature_description2 = {
+            'subjectId': tf.io.FixedLenFeature([], tf.int64, default_value=0),
+            'imageId': tf.io.FixedLenFeature([], tf.int64, default_value=0),
+            'demId': tf.io.FixedLenFeature([], tf.int64, default_value=0),
+            'image_raw': tf.io.FixedLenFeature([], tf.string, default_value=''),
+        }
+
+        self.dataset1.map(parse_function)
+        self.dataset2.map(self._parse_function)
 
         shuffle1, shuffle2 = shuffle
         buffer1, buffer2 = buffer_size
@@ -27,7 +40,12 @@ class SiameseDatasetGenerator(object):
         self.iterator1 = self.dataset1.make_initializable_iterator()
         self.iterator2 = self.dataset2.make_initializable_iterator()
 
+    def _parse_function(self, example_proto):
+        # Parse the input `tf.train.Example` proto using the dictionary above.
+        return tf.io.parse_single_example(example_proto, self.feature_description2)
 
-        
+
     def next(self):
-        yield (self.iterator1.get_next(), self.iterator2.get_next())
+        out1 = self.iterator1.get_next()
+        out2 = self.iterator2.get_next()
+        yield out1,out2
