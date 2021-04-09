@@ -17,7 +17,7 @@ def parse_args():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description='creates tfrecords from csv file'
     )
-    parser.add_argument('--filepath', type=str, required=True, help='path to csv data file')
+    parser.add_argument('--filepath', type=str, required=False, help='path to csv data file')
     parser.add_argument('--tfrecords_file_path', type=str, required=True, help='tfrecords output filename')
     parser.add_argument('--tests', type=bool, default=False, help='test the already created record')
     args = parser.parse_args()
