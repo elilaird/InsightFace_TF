@@ -122,9 +122,6 @@ def combine_loss_val(embedding, labels, w_init, out_num, margin_a, margin_m, mar
     accuracy_s = tf.reduce_mean(tf.cast(tf.equal(tf.cast(predict_cls_s, tf.int64), tf.cast(labels, tf.int64)), 'float'))
     return zy, loss, accuracy, accuracy_s, predict_cls_s
 
-def _calculate_null_dist(s, n):
-    pass
-
 def _calculate_clustering_index(S):
 
     #create pandas dataframe for grouping
@@ -189,17 +186,32 @@ def _calculate_clustering_index(S):
 
 def broad_homogeneity_loss(embedding, labels):
 
+    # #normalize embeddings
+    # embedding_norm = tf.norm(embedding, ord=2, axis=1, keep_dims=True)
+    # embedding_norm = tf.reshape(embedding_norm, (-1,1))
+    # embedding = tf.div(embedding, embedding_norm, name='norm_embedding')
+    #
+    # #compute svd
+    # _, u, _ = tf.svd(embedding, compute_uv=True, name='svd_embedding')
+    #
+    # #calculate clustering effects
+    # S = tf.stack([labels[1], u])
+    # clustering = _calculate_clustering_index(S.eval())
+
     #normalize embeddings
-    embedding_norm = tf.norm(embedding, ord=2, axis=1, keep_dims=True)
-    embedding_norm = tf.reshape(embedding_norm, (-1,1))
-    embedding = tf.div(embedding, embedding_norm, name='norm_embedding')
+    embedding_norm = np.linalg.norm(embedding, axis=1)
+    embedding = np.divide(embedding, embedding_norm[:, np.newaxis])
 
     #compute svd
-    s = tf.svd(embedding, compute_uv=False, name='svd_embedding')
+    u, _, _ = np.linalg.svd(embedding, full_matrices=True)
 
-    #calculate clustering effects
-    S = tf.stack([labels[0],labels[1], embedding])
-    clustering = _calculate_clustering_index(S.eval())
+    dem = labels[:,1].reshape(-1,1)
+    dem = dem.astype('float32')
 
-    return clustering
+    #calculate clustering
+    S = np.hstack((dem, u))
+    #clustering = _calculate_clustering_index(S)
+
+
+    return S.astype('float32')
 

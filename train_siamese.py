@@ -7,12 +7,12 @@ import os
 # from nets.L_Resnet_E_IR_GBN import get_resnet
 from nets.L_Resnet_E_IR_fix_issue9 import get_resnet
 from losses.face_losses import arcface_loss
+from losses.face_losses import broad_homogeneity_loss
 from tensorflow.core.protobuf import config_pb2
 import time
 from data.eval_data_reader import load_bin
 from verification import ver_test
 from data.siamese_dataset import SiameseDatasetGenerator
-
 
 def get_parser():
     parser = argparse.ArgumentParser(description='parameters to train net')
@@ -56,33 +56,22 @@ if __name__ == '__main__':
     global_step = tf.Variable(name='global_step', initial_value=0, trainable=False)
     inc_op = tf.assign_add(global_step, 1, name='increment_global_step')
     images = tf.placeholder(name='img_inputs', shape=[None, *args.image_size, 3], dtype=tf.float32)
-    labels = tf.placeholder(name='img_labels', shape= [None, ], dtype=tf.int64)
-
-    if args.broad_homogeneity_record is not None:
-        bh_images = tf.placeholder(name='bh_inputs', shape=[None, *args.image_size, 3], dtype=tf.float32)
-        bh_labels = tf.placeholder(name='bh_labels', shape=[None, 1, 1], dtype=tf.int64)
-        tfrecords_bh = os.path.join(args.broad_homogeneity_record, 'tran.tfrecords')
-        bh_dataset = tf.data.TFRecordDataset(tfrecords_bh)
-        bh_dataset = bh_dataset.map(parse_function)
-        #bh_dataset = bh_dataset.shuffle(buffer_size=args.buffer_size)
-        bh_dataset = bh_dataset.batch(364)
-        bh_iterator = bh_dataset.make_initializable_iterator()
-        bh_next_element = bh_iterator.get_next()
+    labels = tf.placeholder(name='img_labels', shape=[None, ], dtype=tf.int64)
+    anchor_images = tf.placeholder(name='bh_inputs', shape=[None, *args.image_size, 3], dtype=tf.float32)
+    anchor_labels = tf.placeholder(name='bh_labels', shape=[None, 1, 1], dtype=tf.int64)
 
     # trainable = tf.placeholder(name='trainable_bn', dtype=tf.bool)
     dropout_rate = tf.placeholder(name='dropout_rate', dtype=tf.float32)
 
-    # 2 prepare train datasets and test datasets by using tensorflow dataset api
-    # 2.1 train datasets
-    # the image is substracted 127.5 and multiplied 1/128.
-    # random flip left right
-    tfrecords_f = os.path.join(args.tfrecords_file_path, 'tran.tfrecords')
-    dataset = tf.data.TFRecordDataset(tfrecords_f)
-    dataset = dataset.map(parse_function)
-    dataset = dataset.shuffle(buffer_size=args.buffer_size)
-    dataset = dataset.batch(args.batch_size)
-    iterator = dataset.make_initializable_iterator()
-    next_element = iterator.get_next()
+    # 2. Prepare Siamese data generator
+    data_gen = SiameseDatasetGenerator(
+        os.path.join(args.tfrecords_file_path, 'tran.tfrecords'),
+        os.path.join(args.broad_homogeneity_record, 'bh_anchor.tfrecords'),
+        shuffle=(True,False),
+        batch_size=(32, 364)
+    )
+
+    train_iter, anchor_iter = data_gen.get_iterator()
 
     # 2.2 prepare validate datasets
     ver_list = []
@@ -103,8 +92,15 @@ if __name__ == '__main__':
     logit = arcface_loss(embedding=net.outputs, labels=labels, w_init=w_init_method, out_num=args.num_output)
     # test net  because of batch normal layer
     tl.layers.set_name_reuse(True)
-    test_net = get_resnet(images, args.net_depth, type='ir', w_init=w_init_method, trainable=False, reuse=True, keep_rate=dropout_rate)
+    test_net = get_resnet(images, args.net_depth, type='ir', w_init=w_init_method, trainable=False, reuse=True,
+                          keep_rate=dropout_rate)
     embedding_tensor = test_net.outputs
+
+    #anchor net used to calculate broad homogeneity loss
+    tl.layers.set_name_reuse(True)
+    anchor_net = get_resnet(anchor_images, args.net_depth, type='ir', w_init=w_init_method, trainable=False, reuse=True,
+                          keep_rate=dropout_rate)
+    anchor_embedding = anchor_net.outputs
 
     # 3.3 define the cross entropy
     inference_loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logit, labels=labels))
@@ -130,14 +126,18 @@ if __name__ == '__main__':
     # for bias in tl.layers.get_variables_with_name('resnet_v1_50/E_DenseLayer/b', True, True):
     #     wd_loss += tf.contrib.layers.l2_regularizer(args.weight_deacy)(bias)
 
+    #broad homogeneity loss
+    broad_homogeneity_loss = broad_homogeneity_loss(anchor_embedding.eval(), anchor_labels.eval())
+
     # 3.5 total losses
     total_loss = inference_loss + wd_loss
 
     # 3.6 define the learning rate schedule
-    p = int(512.0/args.batch_size)
-    lr_steps = [p*val for val in args.lr_steps]
+    p = int(512.0 / args.batch_size)
+    lr_steps = [p * val for val in args.lr_steps]
     print(lr_steps)
-    lr = tf.train.piecewise_constant(global_step, boundaries=lr_steps, values=[0.001, 0.0005, 0.0003, 0.0001], name='lr_schedule')
+    lr = tf.train.piecewise_constant(global_step, boundaries=lr_steps, values=[0.001, 0.0005, 0.0003, 0.0001],
+                                     name='lr_schedule')
 
     # 3.7 define the optimize method
     opt = tf.train.MomentumOptimizer(learning_rate=lr, momentum=args.momentum)
@@ -194,7 +194,8 @@ if __name__ == '__main__':
     # 4 begin iteration
     if not os.path.exists(args.log_file_path):
         os.makedirs(args.log_file_path)
-    log_file_path = args.log_file_path + '/train' + time.strftime('_%Y-%m-%d-%H-%M', time.localtime(time.time())) + '.log'
+    log_file_path = args.log_file_path + '/train' + time.strftime('_%Y-%m-%d-%H-%M',
+                                                                  time.localtime(time.time())) + '.log'
 
     log_file = open(log_file_path, 'w')
 
@@ -212,10 +213,10 @@ if __name__ == '__main__':
                 start = time.time()
                 _, total_loss_val, inference_loss_val, wd_loss_val, _, acc_val = \
                     sess.run([train_op, total_loss, inference_loss, wd_loss, inc_op, acc],
-                              feed_dict=feed_dict,
-                              options=config_pb2.RunOptions(report_tensor_allocations_upon_oom=True))
+                             feed_dict=feed_dict,
+                             options=config_pb2.RunOptions(report_tensor_allocations_upon_oom=True))
                 end = time.time()
-                pre_sec = args.batch_size/(end - start)
+                pre_sec = args.batch_size / (end - start)
                 # print training information
                 if count > 0 and count % args.show_info_interval == 0:
                     print('epoch %d, total_step %d, total loss is %.2f , inference loss is %.2f, weight deacy '
@@ -238,25 +239,26 @@ if __name__ == '__main__':
 
                 # validate
                 if count > 0 and count % args.validate_interval == 0:
-                    feed_dict_test ={dropout_rate: 1.0}
+                    feed_dict_test = {dropout_rate: 1.0}
                     feed_dict_test.update(tl.utils.dict_to_one(net.all_drop))
                     results = ver_test(ver_list=ver_list, ver_name_list=ver_name_list, nbatch=count, sess=sess,
-                             embedding_tensor=embedding_tensor, batch_size=args.batch_size, feed_dict=feed_dict_test,
-                             input_placeholder=images)
+                                       embedding_tensor=embedding_tensor, batch_size=args.batch_size,
+                                       feed_dict=feed_dict_test,
+                                       input_placeholder=images)
                     print('test accuracy is: ', str(results[0]))
                     total_accuracy[str(count)] = results[0]
-                    log_file.write('########'*10+'\n')
+                    log_file.write('########' * 10 + '\n')
                     log_file.write(','.join(list(total_accuracy.keys())) + '\n')
-                    log_file.write(','.join([str(val) for val in list(total_accuracy.values())])+'\n')
+                    log_file.write(','.join([str(val) for val in list(total_accuracy.values())]) + '\n')
                     log_file.flush()
                     if max(results) > 0.996:
                         print('best accuracy is %.5f' % max(results))
                         filename = 'InsightFace_iter_best_{:d}'.format(count) + '.ckpt'
                         filename = os.path.join(args.ckpt_path, filename)
                         saver.save(sess, filename)
-                        log_file.write('######Best Accuracy######'+'\n')
-                        log_file.write(str(max(results))+'\n')
-                        log_file.write(filename+'\n')
+                        log_file.write('######Best Accuracy######' + '\n')
+                        log_file.write(str(max(results)) + '\n')
+                        log_file.write(filename + '\n')
 
                         log_file.flush()
             except tf.errors.OutOfRangeError:

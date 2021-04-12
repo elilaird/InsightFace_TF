@@ -29,14 +29,14 @@ class SiameseDatasetGenerator(object):
 
         self.dataset1 = self.dataset1.batch(batch1)
         self.dataset2 = self.dataset2.batch(batch2)
-        '''
+
         if shuffle1:
             if buffer1 is not None:
                 self.dataset1 = self.dataset1.shuffle(buffer_size=buffer1)
         if shuffle2:
             if buffer2 is not None:
                 self.dataset2 = self.dataset2.shuffle(buffer_size=buffer2)
-        '''
+
 
 
     def _parse_function(self, example_proto):
