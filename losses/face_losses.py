@@ -125,67 +125,53 @@ def combine_loss_val(embedding, labels, w_init, out_num, margin_a, margin_m, mar
 def _calculate_clustering_index(S):
 
     #create pandas dataframe for grouping
-    colnames = ['id','demographic'] + ['V'+str(i) for i in range(S.shape[1]-2)]
+    colnames = ['demographic'] + ['V'+str(i) for i in range(1, S.shape[1])]
     df = pd.DataFrame(
         data=S,
         columns=colnames
     )
-    df[colnames[2:]] = df[colnames[2:]].apply(pd.to_numeric, downcast='float')
 
-    #calculate variance across each feature
-    var_overall = df.var()
+    df = pd.melt(df, id_vars=['demographic'], var_name='PC', value_name='Coef', value_vars=colnames[1:])
 
-    #calculate variance across groups
-    grouped_var = df.groupby(['demographic']).var()
+    #calculate overall variance per principal component
+    var_overall = df \
+        .groupby(['PC']) \
+        .agg({'Coef':'var'}) \
+        .reset_index() \
+        .rename(columns={'Coef': 'var.overall'})
 
-    '''
-    #pivot table so features are in a column
-  df.pivot <- df %>%
-    pivot_longer(cols=starts_with('V'), names_to = 'feature', values_to='value') %>%
-    separate(col = 'feature', into = c(NA, 'feature'), sep = "(?<=[A-Za-z])(?=[0-9])") %>%
-    mutate(feature = as.numeric(feature)) %>%
-    arrange(feature)
-  
-  #get overall variance
-  df.overall.var <- df.pivot %>%
-    group_by(feature) %>%
-    summarize(
-      var.overall = sum((value - mean(value))^2)/n(),
-      .groups='drop'
-    )
-  
-  #get within cluster variance
-  df.within.var <- df.pivot %>%
-    group_by(feature, dem) %>%
-    summarize(
-      n = n(),
-      var.within = sum((value - mean(value))^2)/n,
-      .groups='drop'
-    ) %>%
-    group_by(feature) %>%
-    summarize(
-      var.within.sum = sum(n*var.within)/sum(n),
-      .groups='drop'
-    )
-  
-  #calculate clustering index
-  df.index <- inner_join(df.within.var, df.overall.var, by = 'feature') %>%
-    summarize(
-      feat = feature, 
-      clustering.index = 1 - (var.within.sum / var.overall)
-    )
-  
-    '''
-    # calculate variance per component
-    # var = apply(pc[,3:ncol(pc)], 2, sd) ^ 2
+    #calculate within cluster variance
+    var_within = df \
+        .groupby(['PC','demographic']) \
+        .agg({'PC':'count','Coef':'var'}) \
+        .rename(columns={'PC':'n', 'Coef':'var.within'})
 
-    # calculate net clustering
-    # (clustering$clustering.index % * % var) / sum(var)
+    var_within['product'] = var_within['n'] * var_within['var.within']
 
-    pass
+    var_within = var_within[['n','product']] \
+        .groupby(['PC']) \
+        .agg({'n':'sum', 'product':'sum'}) \
+        .rename(columns={'n':'sum_n', 'product':'sum_prod'})
+
+    var_within['var.within.sum'] = var_within['sum_prod'] / var_within['sum_n']
+
+    var_within.reset_index(inplace=True)
+
+    clustering = var_within.join(var_overall.set_index('PC'), on='PC', how='left')
+    clustering['clustering_index'] = 1 - (clustering['var.within.sum'] / clustering['var.overall'])
+    clustering = clustering[['PC','clustering_index']]
+
+    #print(clustering.sort_values(by=['clustering_index'], ascending=False))
+
+    return clustering['clustering_index'].values.astype(np.float32)
+
+
+
+
 
 def broad_homogeneity_loss(embedding, labels):
 
+    #in tensorflow
     # #normalize embeddings
     # embedding_norm = tf.norm(embedding, ord=2, axis=1, keep_dims=True)
     # embedding_norm = tf.reshape(embedding_norm, (-1,1))
@@ -209,9 +195,9 @@ def broad_homogeneity_loss(embedding, labels):
     dem = dem.astype('float32')
 
     #calculate clustering
-    S = np.hstack((dem, u))
-    #clustering = _calculate_clustering_index(S)
+    S = np.hstack((dem,u))
+    clustering = _calculate_clustering_index(S)
 
 
-    return S.astype('float32')
+    return clustering
 
